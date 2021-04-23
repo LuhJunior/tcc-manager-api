@@ -1,0 +1,100 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Semester {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  startPeriod DateTime                         @map(name: "start_period")
+  endPeriod   DateTime                         @map(name: "end_period")
+  classes     Class[]
+  createdAt   DateTime   @default(now())       @map(name: "created_at")
+  updatedAt   DateTime   @updatedAt            @map(name: "updated_at")
+  deletedAt   DateTime?                        @map(name: "deleted_at")
+
+  @@index([code])
+  @@index([deletedAt])
+  @@map(name: "semester")
+}
+
+model Class {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  semester    Semester   @relation(fields: [semesterId], references: [id])
+  semesterId  String
+  createdAt   DateTime   @default(now())                                      @map(name: "created_at")
+  updatedAt   DateTime   @updatedAt                                           @map(name: "updated_at")
+  deletedAt   DateTime?                                                       @map(name: "deleted_at")
+
+  @@index([code])
+  @@index([deletedAt])
+  @@map(name: "class")
+}
+
+model Professor {
+  id               String     @id @default(uuid())
+  name             String
+  enrollmentCode   String     @unique               @map(name: "enrollment_code")
+  professorTcc     ProfessorTcc?
+  professorAdvisor ProfessorAdvisor?
+  createdAt        DateTime   @default(now())       @map(name: "created_at")
+  updatedAt        DateTime   @updatedAt            @map(name: "updated_at")
+  deletedAt        DateTime?                        @map(name: "deleted_at")
+
+  @@index([enrollmentCode])
+  @@index([deletedAt])
+  @@map(name: "professor")
+}
+
+model ProfessorTcc {
+  id             String     @id @default(uuid())
+  professor      Professor  @relation(fields: [professorId], references: [id])
+  professorId    String                                                        @map(name: "professor_id")
+  createdAt      DateTime   @default(now())                                    @map(name: "created_at")
+  updatedAt      DateTime   @updatedAt                                         @map(name: "updated_at")
+  deletedAt      DateTime?                                                     @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_tcc")
+}
+
+model ProfessorAdvisor {
+  id             String     @id @default(uuid())
+  professor      Professor  @relation(fields: [professorId], references: [id])
+  professorId    String                                                        @map(name: "professor_id")
+  projects       Project[]
+  createdAt      DateTime   @default(now())                                    @map(name: "created_at")
+  updatedAt      DateTime   @updatedAt                                         @map(name: "updated_at")
+  deletedAt      DateTime?                                                     @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_advisor")
+}
+
+enum ProjectStatus {
+  ACTIVE      @map(name: "active")
+  IN_PROGRESS @map(name: "in_progress")
+  DISABLED    @map(name: "disabled")
+
+  @@map(name: "project_status")
+}
+
+model Project {
+  id                 String           @id @default(uuid())
+  title              String
+  description        String
+  professorAdvisor   ProfessorAdvisor @relation(fields: [professorAdvisorId], references: [id])
+  professorAdvisorId String                                                                      @map(name: "professor_advisor_id")
+  status             ProjectStatus    @default(ACTIVE)
+  createdAt          DateTime         @default(now())                                            @map(name: "created_at")
+  updatedAt          DateTime         @updatedAt                                                 @map(name: "updated_at")
+  deletedAt          DateTime?                                                                   @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "project")
+}
