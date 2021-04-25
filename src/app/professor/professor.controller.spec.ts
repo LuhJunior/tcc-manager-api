@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProfessorController } from './professor.controller';
-import { PrismaService } from '../services/prisma.service';
-import { ProfessorService } from '../services/professor.service';
-import { ProjectService } from '../services/project.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { ProfessorService } from './professor.service';
+import { ProjectService } from '../project/project.service';
 
 describe('AppController', () => {
   let professorController: ProfessorController;
@@ -16,9 +16,9 @@ describe('AppController', () => {
     professorController = app.get<ProfessorController>(ProfessorController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(professorController.addProfessor({ name: 'Ana', email: 'ana@gamil.com', enrollmentCode: '123456789', phoneNumber: '(71) 9999999' })).toBeTruthy();
+  describe('Function createProfessorAdvisor', () => {
+    it('should create a professor', () => {
+      expect(professorController.createProfessorAdvisor({ name: 'Ana', email: 'ana@gmail.com', enrollmentCode: '123456789', phoneNumber: '(71) 9999999' })).toBeTruthy();
     });
   });
 });
