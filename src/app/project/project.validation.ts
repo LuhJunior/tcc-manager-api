@@ -1,4 +1,18 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+
+export class FileDto {
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @IsString()
+  description: string;
+
+  @IsNotEmpty()
+  @IsString()
+  fileUrl: string;
+}
 
 export class CreateProjectDto {
   @IsNotEmpty()
@@ -13,6 +27,12 @@ export class CreateProjectDto {
   @IsNotEmpty()
   @IsString()
   description: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
+  files?: FileDto[];
 }
 
 export class FindByIdParam {

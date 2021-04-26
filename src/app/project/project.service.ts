@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   Project,
+  Application,
   Prisma,
   ProjectStatus
 } from '@prisma/client';
@@ -19,6 +20,47 @@ export class ProjectService {
     });
   }
 
+  async acceptProjectApplication(projectId: string, applicationId: string): Promise<{ project: Project, application: Application } | null> {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const application = await this.prisma.application.findUnique({ where: { id: applicationId } });
+
+    if (!project || project.deletedAt || !application || application.deletedAt) {
+      return null;
+    }
+
+    const [updatedApplication, updatedProject] = await this.prisma.$transaction([
+      this.prisma.application.update({
+        data: {
+          status: 'ACCEPTED',
+        },
+        where: {
+          id: applicationId,
+        },
+      }),
+      this.prisma.project.update({
+        data: {
+          status: 'IN_PROGRESS',
+        },
+        where: {
+          id: projectId,
+        },
+      })
+    ]);
+
+    return ({ project: updatedProject, application: updatedApplication });
+  }
+
+  async rejectProjectApplication(applicationId: string): Promise<Application> {
+    return this.prisma.application.update({
+      data: {
+        status: 'ACCEPTED',
+      },
+      where: {
+        id: applicationId,
+      },
+    });
+  }
+
   async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput): Promise<Project | null> {
     const project = await this.prisma.project.findUnique({
       where: projectWhereUniqueInput,
@@ -28,7 +70,11 @@ export class ProjectService {
             professor: true,
           },
         },
-        applications: true,
+        applications: {
+          include: {
+            student: true,
+          },
+        },
         files: true,
       },
     });
@@ -91,7 +137,10 @@ export class ProjectService {
       return null;
     }
 
-    return this.prisma.project.delete({
+    return this.prisma.project.update({
+      data: {
+        deletedAt: new Date(),
+      },
       where,
     });
   }
