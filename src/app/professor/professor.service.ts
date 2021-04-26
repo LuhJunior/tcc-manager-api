@@ -51,6 +51,25 @@ export class ProfessorService {
     return professor;
   }
 
+  async professorByProfessorAdvisorId(id: string): Promise<Professor | null> {
+    const professor = await this.prisma.professor.findFirst({
+      where: {
+        professorAdvisor: {
+          id,
+        },
+      },
+      include: {
+        professorAdvisor: true,
+      },
+    });
+
+    if (professor?.deletedAt) {
+      return null;
+    }
+
+    return professor;
+  }
+
   async professors({ skip, take, cursor, where, orderBy }: {
     skip?: number;
     take?: number;
