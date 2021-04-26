@@ -1,0 +1,298 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Semester {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  startPeriod DateTime                         @map(name: "start_period")
+  endPeriod   DateTime                         @map(name: "end_period")
+  classes     Class[]
+  createdAt   DateTime   @default(now())       @map(name: "created_at")
+  updatedAt   DateTime   @updatedAt            @map(name: "updated_at")
+  deletedAt   DateTime?                        @map(name: "deleted_at")
+
+  @@index([code])
+  @@index([deletedAt])
+  @@map(name: "semester")
+}
+
+model Class {
+  id         String                @id @default(uuid())
+  code       String                @unique
+  semesterId String                                                                     @map(name: "semester_id")
+  semester   Semester              @relation(fields: [semesterId], references: [id])
+  professors ProfessorTccOnClass[]
+  classes    StudentOnClass[]
+  createdAt  DateTime              @default(now())                                      @map(name: "created_at")
+  updatedAt  DateTime              @updatedAt                                           @map(name: "updated_at")
+  deletedAt  DateTime?                                                                  @map(name: "deleted_at")
+
+  @@index([code])
+  @@index([deletedAt])
+  @@map(name: "class")
+}
+
+model Professor {
+  id               String             @id @default(uuid())
+  name             String
+  enrollmentCode   String             @unique               @map(name: "enrollment_code")
+  email            String
+  phoneNumber      String             @db.VarChar(15)       @map(name: "phone_number")
+  professorTcc     ProfessorTcc?
+  professorAdvisor ProfessorAdvisor?
+  files            File[]
+  createdAt        DateTime           @default(now())       @map(name: "created_at")
+  updatedAt        DateTime           @updatedAt            @map(name: "updated_at")
+  deletedAt        DateTime?                                @map(name: "deleted_at")
+
+  @@index([enrollmentCode])
+  @@index([deletedAt])
+  @@map(name: "professor")
+}
+
+model ProfessorTcc {
+  id          String     @id @default(uuid())
+  professorId String                                                        @map(name: "professor_id")
+  professor   Professor  @relation(fields: [professorId], references: [id])
+  classes     ProfessorTccOnClass[]
+  reports     ProfessorReport[]
+  createdAt   DateTime   @default(now())                                    @map(name: "created_at")
+  updatedAt   DateTime   @updatedAt                                         @map(name: "updated_at")
+  deletedAt   DateTime?                                                     @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_tcc")
+}
+
+model ProfessorTccOnClass {
+  id             String       @id @default(uuid())
+  professorTccId String                                                             @map(name: "professor_tcc_id")
+  professorTcc   ProfessorTcc @relation(fields: [professorTccId], references: [id])
+  classId        String                                                             @map(name: "class_id")
+  class          Class        @relation(fields: [classId], references: [id])
+  exams          Exam[]
+  createdAt      DateTime     @default(now())                                       @map(name: "created_at")
+  updatedAt      DateTime     @updatedAt                                            @map(name: "updated_at")
+  deletedAt      DateTime?                                                          @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_tcc_class")
+}
+
+model Exam {
+  id                    String              @id @default(uuid())
+  description           String
+  deadlineAt            DateTime                                                                         @map(name: "deadline_at")
+  professorTccOnClassId String                                                                           @map(name: "professor_tcc_class_id")
+  professorTccOnClass   ProfessorTccOnClass @relation(fields: [professorTccOnClassId], references: [id])
+  posts                 Post[]
+  createdAt             DateTime            @default(now())                                              @map(name: "created_at")
+  updatedAt             DateTime            @updatedAt                                                   @map(name: "updated_at")
+  deletedAt             DateTime?                                                                        @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "exam")
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  title     String
+  content   String
+  fileUrl   String?                                                    @map(name: "file_url")
+  examId    String                                                     @map(name: "exam_id")
+  exam      Exam      @relation(fields: [examId], references: [id])
+  studentId String                                                     @map(name: "student_id")
+  student   Student   @relation(fields: [studentId], references: [id])
+  createdAt DateTime  @default(now())                                  @map(name: "created_at")
+  updatedAt DateTime  @updatedAt                                       @map(name: "updated_at")
+  deletedAt DateTime?                                                  @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "post")
+}
+
+enum StudentOnClassStatus {
+  APPROVED    @map(name: "approved")
+  IN_PROGRESS @map(name: "in_progress")
+  REPROVED    @map(name: "reproved")
+
+  @@map(name: "student_class_status")
+}
+
+model StudentOnClass {
+  id               String               @id @default(uuid())
+  status           StudentOnClassStatus @default(IN_PROGRESS)
+  classId          String                                                                @map(name: "class_id")
+  class            Class                @relation(fields: [classId], references: [id])
+  studentId        String                                                                @map(name: "student_id")
+  student          Student              @relation(fields: [studentId], references: [id])
+  studentReports   StudentReport[]
+  professorReports ProfessorReport[]
+  createdAt        DateTime             @default(now())                                  @map(name: "created_at")
+  updatedAt        DateTime             @updatedAt                                       @map(name: "updated_at")
+  deletedAt        DateTime?                                                             @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "student_class")
+}
+
+model StudentReport {
+  id               String                    @id @default(uuid())
+  title            String
+  description      String
+  studentOnClassId String                                                                            @map(name: "student_class_id")
+  studentOnClass   StudentOnClass            @relation(fields: [studentOnClassId], references: [id])
+  attachments      StudentReportAttachment[]
+  createdAt        DateTime                  @default(now())                                         @map(name: "created_at")
+  updatedAt        DateTime                  @updatedAt                                              @map(name: "updated_at")
+  deletedAt        DateTime?                                                                         @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "student_report")
+}
+
+model StudentReportAttachment {
+  id              String        @id @default(uuid())
+  fileUrl         String?                                                              @map(name: "file_url")
+  studentReportId String                                                               @map(name: "student_report_id")
+  studentReport   StudentReport @relation(fields: [studentReportId], references: [id])
+  createdAt       DateTime      @default(now())                                        @map(name: "created_at")
+  updatedAt       DateTime      @updatedAt                                             @map(name: "updated_at")
+  deletedAt       DateTime?                                                            @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "student_report_attachment")
+}
+
+model ProfessorReport {
+  id               String                      @id @default(uuid())
+  title            String
+  description      String
+  studentOnClassId String                                                                              @map(name: "student_class_id")
+  studentOnClass   StudentOnClass              @relation(fields: [studentOnClassId], references: [id])
+  professorTccId   String                                                                              @map(name: "professor_tcc_id")
+  professorTcc     ProfessorTcc                @relation(fields: [professorTccId], references: [id])
+  attachments      ProfessorReportAttachment[]
+  createdAt        DateTime                    @default(now())                                         @map(name: "created_at")
+  updatedAt        DateTime                    @updatedAt                                              @map(name: "updated_at")
+  deletedAt        DateTime?                                                                           @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_report")
+}
+
+model ProfessorReportAttachment {
+  id                String          @id @default(uuid())
+  fileUrl           String?                                                                  @map(name: "file_url")
+  professorReportId String                                                                   @map(name: "professor_report_id")
+  professorReport   ProfessorReport @relation(fields: [professorReportId], references: [id])
+  createdAt         DateTime        @default(now())                                          @map(name: "created_at")
+  updatedAt         DateTime        @updatedAt                                               @map(name: "updated_at")
+  deletedAt         DateTime?                                                                @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_report_attachment")
+}
+
+model ProfessorAdvisor {
+  id          String     @id @default(uuid())
+  professorId String                                                        @map(name: "professor_id")
+  professor   Professor  @relation(fields: [professorId], references: [id])
+  projects    Project[]
+  createdAt   DateTime   @default(now())                                    @map(name: "created_at")
+  updatedAt   DateTime   @updatedAt                                         @map(name: "updated_at")
+  deletedAt   DateTime?                                                     @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "professor_advisor")
+}
+
+enum ProjectStatus {
+  ACTIVE      @map(name: "active")
+  IN_PROGRESS @map(name: "in_progress")
+  DISABLED    @map(name: "disabled")
+
+  @@map(name: "project_status")
+}
+
+model Project {
+  id                 String           @id @default(uuid())
+  title              String
+  description        String
+  professorAdvisorId String                                                                      @map(name: "professor_advisor_id")
+  professorAdvisor   ProfessorAdvisor @relation(fields: [professorAdvisorId], references: [id])
+  status             ProjectStatus    @default(ACTIVE)
+  applications       Application[]
+  files              File[]
+  createdAt          DateTime         @default(now())                                            @map(name: "created_at")
+  updatedAt          DateTime         @updatedAt                                                 @map(name: "updated_at")
+  deletedAt          DateTime?                                                                   @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "project")
+}
+
+model File {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  fileUrl     String                                                       @map(name: "file_url")
+  projectId   String                                                       @map(name: "project_id")
+  project     Project   @relation(fields: [projectId], references: [id])
+  professorId String                                                       @map(name: "professor_id")
+  professor   Professor @relation(fields: [professorId], references: [id])
+  createdAt   DateTime  @default(now())                                    @map(name: "created_at")
+  updatedAt   DateTime  @updatedAt                                         @map(name: "updated_at")
+  deletedAt   DateTime?                                                    @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "file")
+}
+
+model Student {
+  id               String           @id @default(uuid())
+  name             String
+  enrollmentCode   String           @unique               @map(name: "enrollment_code")
+  email            String
+  phoneNumber      String           @db.VarChar(15)       @map(name: "phone_number")
+  applications     Application[]
+  posts            Post[]
+  classes          StudentOnClass[]
+  createdAt        DateTime         @default(now())       @map(name: "created_at")
+  updatedAt        DateTime         @updatedAt            @map(name: "updated_at")
+  deletedAt        DateTime?                              @map(name: "deleted_at")
+
+  @@index([enrollmentCode])
+  @@index([deletedAt])
+  @@map(name: "student")
+}
+
+enum ApplicationStatus {
+  ACCEPTED    @map(name: "accepted")
+  IN_PROGRESS @map(name: "in_progress")
+  REJECTED    @map(name: "rejected")
+  ABANDONED   @map(name: "abandoned")
+
+  @@map(name: "application_status")
+}
+
+model Application {
+  id        String            @id @default(uuid())
+  studentId String                                                             @map(name: "student_id")
+  student   Student           @relation(fields: [studentId], references: [id])
+  projectId String                                                             @map(name: "project_id")
+  project   Project           @relation(fields: [projectId], references: [id])
+  status    ApplicationStatus @default(IN_PROGRESS)
+  createdAt DateTime          @default(now())                                  @map(name: "created_at")
+  updatedAt DateTime          @updatedAt                                       @map(name: "updated_at")
+  deletedAt DateTime?                                                          @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "application")
+}
