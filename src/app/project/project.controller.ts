@@ -10,12 +10,13 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { ProfessorService } from '../professor/professor.service';
-import { Project as ProjectModel } from '@prisma/client';
-import { CreateProjectDto, UpdateProjectDto, UpdateProjectFieldsDto } from './project.validation';
-import { FindAllParams, FindByIdParam } from '../professor/professor.validation';
+import { CreateProjectDto, UpdateProjectDto, UpdateProjectFieldsDto, ProjectResponseDto } from './project.dto';
+import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 
+@ApiTags('Project')
 @Controller()
 export class ProjectController {
   constructor(
@@ -24,9 +25,10 @@ export class ProjectController {
   ) {}
 
   @Post('project')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
   async createProject(
     @Body() { title, description, professorAdvisorId, files }: CreateProjectDto,
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const professor = await this.professorService.professorByProfessorAdvisorId(professorAdvisorId);
 
     if (!professor) {
@@ -50,9 +52,10 @@ export class ProjectController {
   }
 
   @Get('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async findProjectById(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.project({ id });
 
     if (!project) {
@@ -65,15 +68,16 @@ export class ProjectController {
   @Get('project')
   async findAllProjects(
     @Param() { skip, take }: FindAllParams,
-  ): Promise<ProjectModel[]> {
+  ): Promise<ProjectResponseDto[]> {
     return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
   @Put('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async updateProject(
     @Param() { id }: FindByIdParam,
     @Body() projectData: UpdateProjectDto,
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id },
       data: projectData,
@@ -87,10 +91,11 @@ export class ProjectController {
   }
 
   @Patch('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async updateProjectFields(
     @Param() { id }: FindByIdParam,
     @Body() projectData: UpdateProjectFieldsDto,
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id },
       data: projectData,
@@ -104,9 +109,10 @@ export class ProjectController {
   }
 
   @Delete('project/deactivate/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async deactivateProject(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id },
       data: {
@@ -122,9 +128,10 @@ export class ProjectController {
   }
 
   @Delete('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async deleteProject(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.deleteProject({ id });
 
     if (!project) {

@@ -37,7 +37,7 @@ export class CreateProfessorTccDto {
   @IsNotEmpty()
   @IsString()
   @IsUUID()
-  professorId: string | undefined;
+  professorId?: string | undefined;
 
   @ValidateIf(o => o.professorId === undefined)
   @IsNotEmpty()
@@ -117,3 +117,13 @@ export class UpdateProfessorDto {
   phoneNumber?: string | undefined;
 }
 
+export class ProfessorResponseDto {
+  id: string;
+  name: string;
+  enrollmentCode: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date;
+}

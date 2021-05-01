@@ -10,16 +10,18 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { ProfessorService } from './professor.service';
-import { Professor as ProfessorModel } from '@prisma/client';
 import {
   CreateProfessorAdvisorDto,
   CreateProfessorTccDto,
   FindByIdParam,
   FindByEnrollmentCodeParam,
   FindAllParams,
-  UpdateProfessorDto
-} from './professor.validation';
+  UpdateProfessorDto,
+  ProfessorResponseDto
+} from './professor.dto';
+import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
 
+@ApiTags('Professor')
 @Controller()
 export class ProfessorController {
   constructor(
@@ -29,7 +31,7 @@ export class ProfessorController {
   @Post('professor/advisor')
   async createProfessorAdvisor(
     @Body() professorData: CreateProfessorAdvisorDto,
-  ): Promise<ProfessorModel> {
+  ): Promise<ProfessorResponseDto> {
     if (professorData.professorId) {
       await this.professorService.createProfessorAdvisor({
         professor: {
@@ -48,7 +50,7 @@ export class ProfessorController {
   @Post('professor/tcc')
   async createProfessorTcc(
     @Body() professorData: CreateProfessorTccDto,
-  ): Promise<ProfessorModel> {
+  ): Promise<ProfessorResponseDto> {
     if (professorData.professorId) {
       await this.professorService.createProfessorTcc({
         professor: {
@@ -66,7 +68,8 @@ export class ProfessorController {
 
 
   @Get('professor/:id')
-  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorModel> {
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ id });
 
     if (!professor) {
@@ -77,7 +80,8 @@ export class ProfessorController {
   }
 
   @Get('professor/:enrollmentCode')
-  async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorModel> {
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ enrollmentCode });
 
     if (!professor) {
@@ -90,15 +94,16 @@ export class ProfessorController {
   @Get('professor')
   async findAllProfessors(
     @Param() { skip, take } : FindAllParams,
-  ): Promise<ProfessorModel[]> {
+  ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
   @Patch('professor/:id')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
   async updateProfessor(
     @Param() { id }: FindByIdParam,
     @Body() professorData: UpdateProfessorDto,
-  ): Promise<ProfessorModel> {
+  ): Promise<ProfessorResponseDto> {
     const professor = this.professorService.updateProfessor({
       data: professorData,
       where: { id },
@@ -112,9 +117,10 @@ export class ProfessorController {
   }
 
   @Delete('professor/:id')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
   async deleteProfessor(
     @Param() { id }: FindByIdParam
-  ): Promise<ProfessorModel> {
+  ): Promise<ProfessorResponseDto> {
     const professor = this.professorService.deleteProfessor({ id });
 
     if (!professor) {
