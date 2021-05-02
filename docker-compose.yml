@@ -12,25 +12,22 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=mysql://root:root@mysql:3306/tcc-manager
+      - DATABASE_URL=postgresql://root:root@postgres:5432/tcc_manager
     volumes:
       - .:/app
       - /app/node_modules
     networks:
       - backend
-  mysql:
-    container_name: mysql
-    image: mysql:8.0.20
-    command: --default-authentication-plugin=mysql_native_password
+  postgres:
+    container_name: postgres
+    image: postgres:13-alpine
     restart: always
     ports:
-      - '3306:3306'
+      - '5432:5432'
     environment:
-      - MYSQL_DATABASE=tcc-manager
-      - MYSQL_PASSWORD=
-      - MYSQL_ROOT_PASSWORD=root
-    volumes:
-      - /var/lib/mysql
+      - POSTGRES_DB=tcc_manager
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
     networks:
       - backend
 
