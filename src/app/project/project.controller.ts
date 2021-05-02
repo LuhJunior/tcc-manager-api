@@ -9,13 +9,15 @@ import {
   Delete,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
+import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { ProfessorService } from '../professor/professor.service';
-import { Project as ProjectModel } from '@prisma/client';
-import { CreateProjectDto, UpdateProjectDto, UpdateProjectFieldsDto } from './project.validation';
-import { FindAllParams, FindByIdParam } from '../professor/professor.validation';
+import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto } from './project.dto';
+import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 
+@ApiTags('Project')
 @Controller()
 export class ProjectController {
   constructor(
@@ -24,13 +26,19 @@ export class ProjectController {
   ) {}
 
   @Post('project')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  @ApiBadRequestResponse({ description: 'Professor is not an advisor.' })
   async createProject(
-    @Body() { title, description, professorAdvisorId, files }: CreateProjectDto,
-  ): Promise<ProjectModel> {
-    const professor = await this.professorService.professorByProfessorAdvisorId(professorAdvisorId);
+    @Body() { title, description, professorId, files }: CreateProjectDto,
+  ): Promise<ProjectResponseDto> {
+    const professor = await this.professorService.professor({ id: professorId });
 
     if (!professor) {
       throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+    }
+
+    if (!professor.professorAdvisor) {
+      throw new HttpException('Professor is not an advisor.', HttpStatus.BAD_REQUEST);
     }
 
     return this.projectService.createProject({
@@ -38,21 +46,22 @@ export class ProjectController {
       description,
       professorAdvisor: {
         connect: {
-          id: professorAdvisorId,
-        }
+          id: professor.professorAdvisor.id,
+        },
       },
-      files: {
+      files: files && {
         createMany: {
           data: files.map(({ title, description, fileUrl }) => ({ title, description, fileUrl, professorId: professor.id })),
         },
-      }
+      },
     });
   }
 
   @Get('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async findProjectById(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.project({ id });
 
     if (!project) {
@@ -62,35 +71,34 @@ export class ProjectController {
     return project;
   }
 
+  @Get('project/professor/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
+  async findProjectByProfessorId(
+    @Param() { id }: FindByIdParam,
+    @Query() { skip, take }: FindAllParams,
+  ): Promise<ProjectResponseDto[]> {
+    const professor = await this.professorService.professor({ id });
+
+    if (!professor || !professor.professorAdvisor) {
+      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return this.projectService.projects({ skip, take, where: { professorAdvisorId: professor.professorAdvisor.id }, orderBy: { createdAt: 'desc' } });
+  }
+
   @Get('project')
   async findAllProjects(
     @Param() { skip, take }: FindAllParams,
-  ): Promise<ProjectModel[]> {
+  ): Promise<ProjectResponseDto[]> {
     return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
-  @Put('project/:id')
-  async updateProject(
-    @Param() { id }: FindByIdParam,
-    @Body() projectData: UpdateProjectDto,
-  ): Promise<ProjectModel> {
-    const project = await this.projectService.updateProject({
-      where: { id },
-      data: projectData,
-    })
-
-    if (!project) {
-      throw new HttpException('Project not found.', HttpStatus.NOT_FOUND);
-    }
-
-    return project;
-  }
-
   @Patch('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async updateProjectFields(
     @Param() { id }: FindByIdParam,
-    @Body() projectData: UpdateProjectFieldsDto,
-  ): Promise<ProjectModel> {
+    @Body() projectData: UpdateProjectDto,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id },
       data: projectData,
@@ -103,10 +111,11 @@ export class ProjectController {
     return project;
   }
 
-  @Delete('project/deactivate/:id')
+  @Patch('project/:id/deactivate')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async deactivateProject(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id },
       data: {
@@ -122,9 +131,10 @@ export class ProjectController {
   }
 
   @Delete('project/:id')
+  @ApiNotFoundResponse({ description: 'Project not found.' })
   async deleteProject(
     @Param() { id }: FindByIdParam
-  ): Promise<ProjectModel> {
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectService.deleteProject({ id });
 
     if (!project) {

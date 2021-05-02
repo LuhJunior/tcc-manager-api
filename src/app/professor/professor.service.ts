@@ -23,7 +23,7 @@ export class ProfessorService {
     return this.prisma.professorTcc.create({ data });
   }
 
-  async professor(professorWhereUniqueInput: Prisma.ProfessorWhereUniqueInput): Promise<Professor | null> {
+  async professor(professorWhereUniqueInput: Prisma.ProfessorWhereUniqueInput) {
     const professor = await this.prisma.professor.findUnique({
       where: professorWhereUniqueInput,
       include: {
@@ -76,7 +76,7 @@ export class ProfessorService {
     cursor?: Prisma.ProfessorWhereUniqueInput;
     where?: Prisma.ProfessorWhereInput;
     orderBy?: Prisma.ProfessorOrderByInput;
-  }): Promise<Professor[]> {
+  }) {
     return this.prisma.professor.findMany({
       skip,
       take,

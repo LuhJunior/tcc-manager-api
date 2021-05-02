@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=mysql://root:root@mysql:3306/tcc-manager
+      - DATABASE_URL=mysql://root:root@mysql:3306/tcc_manager
     volumes:
       - .:/app
       - /app/node_modules
@@ -26,7 +26,7 @@ services:
     ports:
       - '3306:3306'
     environment:
-      - MYSQL_DATABASE=tcc-manager
+      - MYSQL_DATABASE=tcc_manager
       - MYSQL_PASSWORD=
       - MYSQL_ROOT_PASSWORD=root
     volumes:
