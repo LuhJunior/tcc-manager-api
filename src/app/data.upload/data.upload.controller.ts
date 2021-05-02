@@ -1,5 +1,5 @@
 import { Controller, Post, UploadedFiles, UseInterceptors } from "@nestjs/common";
-import { FilesInterceptor, FileFieldsInterceptor } from "@nestjs/platform-express";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags, ApiBody, ApiConsumes } from "@nestjs/swagger";
 import { DataUploadService } from "./data.upload.service";
 
@@ -10,10 +10,10 @@ export class DataUploadController {
     private readonly dataUploadService: DataUploadService,
   ) {}
 
-  @Post('firebase/upload')
+  @Post('data-upload')
   @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files'))
   @ApiBody({
-    type: 'array',
     description: 'Files to upload',
     required: true,
     schema: {
@@ -29,7 +29,6 @@ export class DataUploadController {
       },
     },
   })
-  @UseInterceptors(FilesInterceptor('files'))
   async uploadFile(@UploadedFiles() files: Array<Express.Multer.File>) {
     return await this.dataUploadService.sendFileUpload(files.map(({ originalname, buffer }) => ({ filename: originalname, buffer })));
   }

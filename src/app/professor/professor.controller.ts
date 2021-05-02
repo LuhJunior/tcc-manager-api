@@ -8,6 +8,8 @@ import {
   Delete,
   HttpStatus,
   HttpException,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProfessorService } from './professor.service';
 import {
@@ -19,7 +21,7 @@ import {
   UpdateProfessorDto,
   ProfessorResponseDto
 } from './professor.dto';
-import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
 
 @ApiTags('Professor')
 @Controller()
@@ -29,10 +31,22 @@ export class ProfessorController {
   ) {}
 
   @Post('professor/advisor')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
     @Body() professorData: CreateProfessorAdvisorDto,
   ): Promise<ProfessorResponseDto> {
     if (professorData.professorId) {
+      const professor = await this.professorService.professor({ id: professorData.professorId });
+
+      if (!professor) {
+        throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+      }
+
+      if (professor.professorAdvisor) {
+        throw new HttpException('Professor Advisor already registry for the given professorId.', HttpStatus.BAD_REQUEST);
+      }
+
       await this.professorService.createProfessorAdvisor({
         professor: {
           connect: {
@@ -48,10 +62,22 @@ export class ProfessorController {
   }
 
   @Post('professor/tcc')
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  @ApiBadRequestResponse({ description: 'Professor TCC already registry for the given professorId.' })
   async createProfessorTcc(
     @Body() professorData: CreateProfessorTccDto,
   ): Promise<ProfessorResponseDto> {
     if (professorData.professorId) {
+      const professor = await this.professorService.professor({ id: professorData.professorId });
+
+      if (!professor) {
+        throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+      }
+
+      if (professor.professorTcc) {
+        throw new HttpException('Professor TCC already registry for the given professorId.', HttpStatus.BAD_REQUEST);
+      }
+
       await this.professorService.createProfessorTcc({
         professor: {
           connect: {
@@ -79,7 +105,7 @@ export class ProfessorController {
     return professor;
   }
 
-  @Get('professor/:enrollmentCode')
+  @Get('professor/enrollmentCode/:enrollmentCode')
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ enrollmentCode });
@@ -93,7 +119,7 @@ export class ProfessorController {
 
   @Get('professor')
   async findAllProfessors(
-    @Param() { skip, take } : FindAllParams,
+    @Query() { skip, take } : FindAllParams,
   ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
   }
@@ -104,7 +130,7 @@ export class ProfessorController {
     @Param() { id }: FindByIdParam,
     @Body() professorData: UpdateProfessorDto,
   ): Promise<ProfessorResponseDto> {
-    const professor = this.professorService.updateProfessor({
+    const professor = await this.professorService.updateProfessor({
       data: professorData,
       where: { id },
     });
@@ -119,9 +145,9 @@ export class ProfessorController {
   @Delete('professor/:id')
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async deleteProfessor(
-    @Param() { id }: FindByIdParam
+    @Param() { id }: FindByIdParam,
   ): Promise<ProfessorResponseDto> {
-    const professor = this.professorService.deleteProfessor({ id });
+    const professor = await this.professorService.deleteProfessor({ id });
 
     if (!professor) {
       throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);

@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsInt, IsNumberString, IsOptional, IsString, IsUUID, MaxLength, ValidateIf,  } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProfessorAdvisorDto {
   @IsOptional()
@@ -7,25 +8,25 @@ export class CreateProfessorAdvisorDto {
   @IsUUID()
   professorId?: string | undefined;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   name: string;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @IsEmail()
   email: string;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @IsNumberString({ no_symbols: true })
   @MaxLength(15)
   enrollmentCode: string;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @MaxLength(15)
@@ -39,25 +40,25 @@ export class CreateProfessorTccDto {
   @IsUUID()
   professorId?: string | undefined;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   name: string | undefined;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @IsEmail()
   email: string | undefined;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @IsNumberString({ no_symbols: true })
   @MaxLength(15)
   enrollmentCode: string | undefined;
 
-  @ValidateIf(o => o.professorId === undefined)
+  @ValidateIf(o => !o.professorId)
   @IsNotEmpty()
   @IsString()
   @MaxLength(15)
@@ -65,6 +66,10 @@ export class CreateProfessorTccDto {
 }
 
 export class FindByIdParam {
+  /**
+   * An uuid that identifies an entity
+   * @example 'f98dacd1-1941-4a12-b46c-b3e5b652ba7b'
+   */
   @IsNotEmpty()
   @IsString()
   @IsUUID()
@@ -72,6 +77,9 @@ export class FindByIdParam {
 }
 
 export class FindByEnrollmentCodeParam {
+  /**
+   * @example '071859745'
+   */
   @IsNotEmpty()
   @IsString()
   @IsNumberString({ no_symbols: true })
@@ -80,14 +88,22 @@ export class FindByEnrollmentCodeParam {
 }
 
 export class FindAllParams {
+  /**
+   * @example '0'
+   */
   @IsOptional()
   @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
+  @Type(() => Number)
   skip?: number;
 
+  /**
+   * @example '100'
+   */
   @IsOptional()
   @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
+  @Type(() => Number)
   take?: number;
 }
 

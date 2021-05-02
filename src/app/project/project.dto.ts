@@ -35,7 +35,7 @@ export class CreateProjectDto {
   @IsNotEmpty()
   @IsString()
   @IsUUID()
-  professorAdvisorId?: string | undefined;
+  professorId: string;
 
   /**
    * @example 'A beautiful project title'
@@ -81,24 +81,6 @@ export class FindAllParams {
 }
 
 export class UpdateProjectDto {
-  /**
-   * @example 'A beautiful project title'
-   */
-  @IsOptional()
-  @IsNotEmpty()
-  @IsString()
-  title?: string;
-
-  /**
-   * @example 'A project description'
-   */
-  @IsOptional()
-  @IsNotEmpty()
-  @IsString()
-  description?: string;
-}
-
-export class UpdateProjectFieldsDto {
   /**
    * @example 'A beautiful project title'
    */

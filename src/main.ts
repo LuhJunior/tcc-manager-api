@@ -17,7 +17,9 @@ import config from './config/configuration';
   }
 
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+  }));
   app.enableCors();
 
   const db = new DocumentBuilder()
