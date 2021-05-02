@@ -30,5 +30,5 @@ import config from './config/configuration';
   const document = SwaggerModule.createDocument(app, db);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(parseInt(process.env.PORT, 10));
+  await app.listen(config.port);
 })();
