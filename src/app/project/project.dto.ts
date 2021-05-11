@@ -58,6 +58,24 @@ export class CreateProjectDto {
   files?: FileDto[];
 }
 
+export class CreateProjectApplicationDto {
+  /**
+   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
+   */
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  projectId: string;
+
+  /**
+   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
+   */
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  studentId: string;
+}
+
 export class FindByIdParam {
   /**
    * @example 'd437d6e4-99fe-432f-81d9-0284af9a571f'
@@ -119,5 +137,5 @@ export class ProjectResponseDto {
   status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date;
+  deletedAt?: Date;
 }

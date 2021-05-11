@@ -20,11 +20,21 @@ export class ProjectService {
     });
   }
 
-  async acceptProjectApplication(projectId: string, applicationId: string): Promise<{ project: Project, application: Application } | null> {
+  async createProjectApplication(projectId: string, studentId: string): Promise<Application | null> {
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    const application = await this.prisma.application.findUnique({ where: { id: applicationId } });
+    const student = await this.prisma.student.findUnique({ where: { id: studentId } });
 
-    if (!project || project.deletedAt || !application || application.deletedAt) {
+    if (!project || project.deletedAt || !student || student.deletedAt) {
+      return null;
+    }
+
+    return this.prisma.application.create({ data: { project: { connect: { id: projectId } }, student: { connect: { id: studentId } } } });
+  }
+
+  async acceptProjectApplication(applicationId: string): Promise<{ project: Project, application: Application } | null> {
+    const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
+
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt) {
       return null;
     }
 
@@ -42,7 +52,7 @@ export class ProjectService {
           status: 'IN_PROGRESS',
         },
         where: {
-          id: projectId,
+          id: application.project.id,
         },
       })
     ]);
@@ -51,9 +61,15 @@ export class ProjectService {
   }
 
   async rejectProjectApplication(applicationId: string): Promise<Application> {
+    const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
+
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt) {
+      return null;
+    }
+
     return this.prisma.application.update({
       data: {
-        status: 'ACCEPTED',
+        status: 'REJECTED',
       },
       where: {
         id: applicationId,
@@ -79,7 +95,7 @@ export class ProjectService {
       },
     });
 
-    if (project?.deletedAt) {
+    if (!project || project.deletedAt) {
       return null;
     }
 

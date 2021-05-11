@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as admin from 'firebase-admin';
 import config from './config/configuration';
@@ -30,5 +30,5 @@ import config from './config/configuration';
   const document = SwaggerModule.createDocument(app, db);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(parseInt(process.env.PORT, 10));
+  await app.listen(config.port);
 })();

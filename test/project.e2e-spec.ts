@@ -288,7 +288,7 @@ describe('professor.e2e.spec.ts', () => {
         })).body;
 
       await Promise.all(
-        Array(faker.datatype.number({ min: 0, max: 10 }))
+        Array(faker.datatype.number({ min: 4, max: 10 }))
           .fill(null)
           .map(async () => (
             (await request(app.getHttpServer())
