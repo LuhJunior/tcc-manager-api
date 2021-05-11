@@ -22,12 +22,14 @@ import {
   ProfessorResponseDto
 } from './professor.dto';
 import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import { UserService } from '../user/user.service';
 
 @ApiTags('Professor')
 @Controller()
 export class ProfessorController {
   constructor(
     private readonly professorService: ProfessorService,
+    private readonly userService: UserService,
   ) {}
 
   @Post('professor/advisor')
@@ -58,7 +60,20 @@ export class ProfessorController {
       return this.professorService.professor({ id: professorData.professorId });
     }
 
-    return this.professorService.createProfessor({ ...professorData, professorAdvisor: { create: { } } });
+    await this.userService.createUser({
+      login: professorData.enrollmentCode,
+      password: professorData.enrollmentCode.substr(0, 6),
+    });
+
+    return this.professorService.createProfessor({
+      ...professorData,
+      professorAdvisor: {
+        create: { },
+      },
+      user: {
+        connect: { login: professorData.enrollmentCode },
+      },
+    });
   }
 
   @Post('professor/tcc')
@@ -89,7 +104,20 @@ export class ProfessorController {
       return this.professorService.professor({ id: professorData.professorId });
     }
 
-    return this.professorService.createProfessor({ ...professorData, professorTcc: { create: { } } });
+    await this.userService.createUser({
+      login: professorData.enrollmentCode,
+      password: professorData.enrollmentCode.substr(0, 6),
+    });
+
+    return this.professorService.createProfessor({
+      ...professorData,
+      professorTcc: {
+        create: { },
+      },
+      user: {
+        connect: { login: professorData.enrollmentCode },
+      },
+    });
   }
 
 

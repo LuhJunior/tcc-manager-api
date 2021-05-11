@@ -14,8 +14,9 @@ import {
 import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { ProfessorService } from '../professor/professor.service';
-import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto } from './project.dto';
+import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto, CreateProjectApplicationDto } from './project.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
+import { Application } from '.prisma/client';
 
 @ApiTags('Project')
 @Controller()
@@ -55,6 +56,20 @@ export class ProjectController {
         },
       },
     });
+  }
+
+  @Post('project/application')
+  @ApiNotFoundResponse({ description: 'Project or Student not found.' })
+  async createProjectApplication(
+    @Body() { projectId, studentId }: CreateProjectApplicationDto,
+  ): Promise<Application> {
+    const application = await this.projectService.createProjectApplication(projectId, studentId);
+
+    if (!application) {
+      throw new HttpException('Project or Student not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return this.projectService.createProjectApplication(projectId, studentId);
   }
 
   @Get('project/:id')
@@ -128,6 +143,34 @@ export class ProjectController {
     }
 
     return project;
+  }
+
+  @Patch('project/application/:id/accept')
+  @ApiNotFoundResponse({ description: 'Application not found.' })
+  async acceptProjectApplication(
+    @Param() { id }: FindByIdParam
+  ): Promise<{ project: ProjectResponseDto, application: Application }> {
+    const data = await this.projectService.acceptProjectApplication(id);
+
+    if (!data) {
+      throw new HttpException('Application not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return data;
+  }
+
+  @Patch('project/application/:id/reject')
+  @ApiNotFoundResponse({ description: 'Application not found.' })
+  async rejectProjectApplication(
+    @Param() { id }: FindByIdParam
+  ): Promise<Application> {
+    const application = await this.projectService.rejectProjectApplication(id);
+
+    if (!application) {
+      throw new HttpException('Application not found.', HttpStatus.NOT_FOUND);
+    }
+
+    return application;
   }
 
   @Delete('project/:id')
