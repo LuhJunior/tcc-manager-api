@@ -141,5 +141,5 @@ export class ProfessorResponseDto {
   phoneNumber: string;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date;
+  deletedAt?: Date;
 }

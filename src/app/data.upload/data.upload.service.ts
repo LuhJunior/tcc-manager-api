@@ -33,7 +33,7 @@ export class FirebaseService implements IDataUploadService {
 export class LocalStorageService implements IDataUploadService {
   async sendFileUpload(files: Array<{ filename: string, buffer: Buffer }>) {
     return Promise.all(files.map(async ({ filename, buffer }) => {
-      const path = `${os.tmpdir()}/${new Date().toISOString()}${filename}`;
+      const path = `${new Date().toISOString()}${filename}.pdf`;
 
       try {
         await fs.promises.writeFile(path, buffer);
@@ -46,7 +46,6 @@ export class LocalStorageService implements IDataUploadService {
     }));
   }
 }
-
 
 @Injectable()
 export class DataUploadService implements IDataUploadService {
