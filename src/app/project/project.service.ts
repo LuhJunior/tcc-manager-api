@@ -87,6 +87,11 @@ export class ProjectService {
     return this.prisma.application.update({
       data: {
         deletedAt: new Date(),
+        project: {
+          update: {
+            status: 'ACTIVE',
+          },
+        },
       },
       where: {
         id: applicationId,
@@ -109,6 +114,28 @@ export class ProjectService {
     return application;
   }
 
+  async applications({ skip, take, cursor, where, orderBy }: {
+    skip?: number;
+    take?: number;
+    cursor?: Prisma.ApplicationWhereUniqueInput;
+    where?: Prisma.ApplicationWhereInput;
+    orderBy?: Prisma.ApplicationOrderByInput;
+  }) {
+    return this.prisma.application.findMany({
+      skip,
+      take,
+      cursor,
+      orderBy,
+      where: {
+        ...where,
+        deletedAt: null,
+      },
+      include: {
+        project: true,
+      },
+    });
+  }
+
   async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput): Promise<Project | null> {
     const project = await this.prisma.project.findUnique({
       where: projectWhereUniqueInput,
@@ -121,6 +148,9 @@ export class ProjectService {
         applications: {
           include: {
             student: true,
+          },
+          where: {
+            deletedAt: null,
           },
         },
         files: true,
@@ -156,7 +186,11 @@ export class ProjectService {
             professor: true,
           },
         },
-        applications: true,
+        applications: {
+          where: {
+            deletedAt: null,
+          },
+        },
         files: true,
       },
     });
@@ -188,6 +222,14 @@ export class ProjectService {
     return this.prisma.project.update({
       data: {
         deletedAt: new Date(),
+        applications: {
+          updateMany: {
+            data: {
+              deletedAt: new Date(),
+            },
+            where: { projectId: where.id },
+          },
+        },
       },
       where,
     });
