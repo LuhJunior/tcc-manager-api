@@ -59,6 +59,7 @@ describe('professor.e2e.spec.ts', () => {
 
   afterAll(async () => {
     await app.close();
+    prisma.$disconnect();
   });
 
   describe('/POST professor', () => {
