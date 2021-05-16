@@ -28,9 +28,9 @@ import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiBearerAuth } fr
 import { UserService } from '../user/user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequestWithUser } from '../auth/auth.interface';
-import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/enums/role.enum';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
+import { Role } from '../../enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
 
 
 @ApiTags('Professor')
@@ -52,9 +52,7 @@ export class ProfessorController {
     if (professorData.professorId) {
       const professor = await this.professorService.professor({ id: professorData.professorId });
 
-      if (!professor) {
-        throw new NotFoundException('Professor not found.')
-      }
+      if (!professor) throw new NotFoundException('Professor not found.')
 
       if (professor.professorAdvisor) {
         throw new BadRequestException('Professor Advisor already registry for the given professorId.')
@@ -90,7 +88,7 @@ export class ProfessorController {
 
   @Post('professor/tcc')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Admin)
+  @Roles(Role.Admin, Role.Secretary)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor TCC already registry for the given professorId.' })
@@ -100,9 +98,7 @@ export class ProfessorController {
     if (professorData.professorId) {
       const professor = await this.professorService.professor({ id: professorData.professorId });
 
-      if (!professor) {
-        throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-      }
+      if (!professor) throw new NotFoundException('Professor not found.')
 
       if (professor.professorTcc) {
         throw new HttpException('Professor TCC already registry for the given professorId.', HttpStatus.BAD_REQUEST);
@@ -139,7 +135,7 @@ export class ProfessorController {
 
   @Get('professor/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Professor)
+  @Roles(Role.Professor)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
@@ -158,9 +154,7 @@ export class ProfessorController {
   async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ id });
 
-    if (!professor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!professor) throw new NotFoundException('Professor not found.');
 
     return professor;
   }
@@ -173,15 +167,13 @@ export class ProfessorController {
   async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ enrollmentCode });
 
-    if (!professor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!professor) throw new NotFoundException('Professor not found.');
 
     return professor;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @Get('professor')
   @ApiBearerAuth()
   async findAllProfessors(
@@ -204,9 +196,7 @@ export class ProfessorController {
       where: { id: req.user.professor?.id },
     });
 
-    if (!professor) {
-      throw new NotFoundException('Professor not found.');
-    }
+    if (!professor) throw new NotFoundException('Professor not found.');
 
     return professor;
   }
@@ -221,9 +211,7 @@ export class ProfessorController {
   ): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.deleteProfessor({ id });
 
-    if (!professor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!professor) throw new NotFoundException('Professor not found.');
 
     return professor;
   }
