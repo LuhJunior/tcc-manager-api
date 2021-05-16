@@ -20,6 +20,7 @@ export class FirebaseService implements IDataUploadService {
 
         return (await bucket.file(gcsname).getSignedUrl({
           action: 'read',
+          cname: filename,
           expires: new Date(2500, 1, 1),
         })).toString();
       } catch (e) {
@@ -40,7 +41,7 @@ export class LocalStorageService implements IDataUploadService {
 
         return fs.promises.realpath(path);
       } catch (e) {
-        Logger.error(e)
+        Logger.error(e);
         return null;
       }
     }));
