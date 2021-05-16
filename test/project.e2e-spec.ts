@@ -7,7 +7,7 @@ import { ProjectModule } from '../src/app/project/project.module';
 import { PrismaClient } from '@prisma/client';
 import { AuthModule } from '../src/app/auth/auth.module';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 describe('professor.e2e.spec.ts', () => {
   let app: INestApplication;
