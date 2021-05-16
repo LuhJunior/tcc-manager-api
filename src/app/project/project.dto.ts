@@ -123,3 +123,13 @@ export class ProjectResponseDto {
   updatedAt: Date;
   deletedAt?: Date;
 }
+
+export class ProjectAgreementPdfResponseDto {
+  /**
+   * Url of the file on the cloud
+   * @example 'www.url.com/file'
+   */
+  @IsNotEmpty()
+  @IsString()
+  fileUrl: string;
+}

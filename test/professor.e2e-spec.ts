@@ -1,12 +1,10 @@
 import * as request from 'supertest';
 import * as faker from 'faker';
 import { Test } from '@nestjs/testing';
-import { ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ProfessorModule } from '../src/app/professor/professor.module';
 import { PrismaClient } from '@prisma/client';
-import { JwtAuthGuard } from '../src/app/auth/jwt-auth.guard';
 import { AuthModule } from '../src/app/auth/auth.module';
-import { JwtStrategy } from '../src/app/auth/jwt.strategy';
 
 const prisma = new PrismaClient();
 
@@ -18,17 +16,6 @@ describe('professor.e2e.spec.ts', () => {
     app = (
       await Test.createTestingModule({
         imports: [ProfessorModule, AuthModule],
-      })
-      .overrideProvider(JwtAuthGuard)
-      .useClass({
-        validate: ({ id }: { id: string }) => {
-          return { id };
-          // const req = context.switchToHttp().getRequest();
-          // req.user = {
-
-          // };
-          // return true;
-        },
       })
       .compile()
     ).createNestApplication()

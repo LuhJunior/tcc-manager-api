@@ -54,6 +54,18 @@ export class ProjectService {
         where: {
           id: application.project.id,
         },
+      }),
+      this.prisma.application.updateMany({
+        data: {
+          deletedAt: new Date(),
+        },
+        where: {
+          status: 'IN_PROGRESS',
+          deletedAt: null,
+          NOT: {
+            studentId: application.studentId,
+          },
+        },
       })
     ]);
 
@@ -77,33 +89,34 @@ export class ProjectService {
     });
   }
 
-  async deleteProjectApplication(applicationId: string, professorAdvisorId: string): Promise<Application> {
-    const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
-
-    if (!application || application.deletedAt || !application.project || application.project.deletedAt || application.project.professorAdvisorId !== professorAdvisorId) {
-      return null;
-    }
-
-    return this.prisma.application.update({
-      data: {
-        deletedAt: new Date(),
-        project: {
-          update: {
-            status: 'ACTIVE',
-          },
-        },
-      },
-      where: {
-        id: applicationId,
-      },
-    });
-  }
-
   async application(where: Prisma.ApplicationWhereUniqueInput) {
     const application = await this.prisma.application.findUnique({
       where,
       include: {
         project: true,
+      },
+    });
+
+    if (!application || application.deletedAt) {
+      return null;
+    }
+
+    return application;
+  }
+
+  async applicationWithProfessor(where: Prisma.ApplicationWhereUniqueInput) {
+    const application = await this.prisma.application.findUnique({
+      where,
+      include: {
+        project: {
+          include: {
+            professorAdvisor: {
+              include: {
+                professor: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -232,6 +245,28 @@ export class ProjectService {
         },
       },
       where,
+    });
+  }
+
+  async deleteProjectApplication(applicationId: string, professorAdvisorId: string): Promise<Application> {
+    const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
+
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt || application.project.professorAdvisorId !== professorAdvisorId) {
+      return null;
+    }
+
+    return this.prisma.application.update({
+      data: {
+        deletedAt: new Date(),
+        project: {
+          update: {
+            status: 'ACTIVE',
+          },
+        },
+      },
+      where: {
+        id: applicationId,
+      },
     });
   }
 }
