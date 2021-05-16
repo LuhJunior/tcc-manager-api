@@ -1,6 +1,6 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsString } from "class-validator";
 
-export class LoginDto {
+export class LoginDtoRequest {
   @IsNotEmpty()
   @IsString()
   login: string;
@@ -8,4 +8,8 @@ export class LoginDto {
   @IsNotEmpty()
   @IsString()
   password: string;
+}
+
+export class LoginDtoResponse {
+  accessToken: string;
 }

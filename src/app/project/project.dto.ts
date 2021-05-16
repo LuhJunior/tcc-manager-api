@@ -30,14 +30,6 @@ export class FileDto {
 
 export class CreateProjectDto {
   /**
-   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
-   */
-  @IsNotEmpty()
-  @IsString()
-  @IsUUID()
-  professorId: string;
-
-  /**
    * @example 'A beautiful project title'
    */
   @IsNotEmpty()
@@ -66,14 +58,6 @@ export class CreateProjectApplicationDto {
   @IsString()
   @IsUUID()
   projectId: string;
-
-  /**
-   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
-   */
-  @IsNotEmpty()
-  @IsString()
-  @IsUUID()
-  studentId: string;
 }
 
 export class FindByIdParam {

@@ -131,6 +131,16 @@ export class ProfessorService {
     return this.prisma.professor.update({
       data: {
         deletedAt: new Date(),
+        professorAdvisor: {
+          update: {
+            deletedAt: new Date(),
+          },
+        },
+        professorTcc: {
+          update: {
+            deletedAt: new Date(),
+          },
+        },
       },
       where,
     });

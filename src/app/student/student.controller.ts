@@ -1,26 +1,36 @@
 import { Student } from '.prisma/client';
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query } from '@nestjs/common';
-import { ApiNotFoundResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiBearerAuth, ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/decorators/roles.decorator';
+import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { RequestWithUser } from '../auth/auth.interface';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../professor/professor.dto';
 import { UserService } from '../user/user.service';
-import { CreateStudentDto } from './student.dto';
+import { CreateStudentDto, StudentResponseDto } from './student.dto';
 import { StudentService } from './student.service';
 
-@Controller()
+@ApiTags('Student')
+@Controller('student')
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
     private readonly userService: UserService,
   ) {}
 
-  @Post('student')
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
-  ): Promise<Student> {
+  ): Promise<StudentResponseDto> {
 
     await this.userService.createUser({
       login: studentData.enrollmentCode,
       password: studentData.enrollmentCode.substr(0, 6),
+      type: 'STUDENT',
     });
 
     return this.studentService.createStudent({
@@ -31,34 +41,52 @@ export class StudentController {
     });
   }
 
-  @Get('student/:id')
+  @Get('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Student)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
-  async findStudentById(@Param() { id }: FindByIdParam): Promise<Student> {
+  async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {
+    const student = await this.studentService.student({ userId: req.user.id });
+    console.log(req.user)
+    if (!student) throw new NotFoundException('Student not found.');
+
+    return student;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Get(':id')
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Student not found.' })
+  async findStudentById(@Param() { id }: FindByIdParam): Promise<StudentResponseDto> {
     const student = await this.studentService.student({ id });
 
-    if (!student) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!student) throw new NotFoundException('Student not found.');
 
     return student;
   }
 
-  @Get('student/enrollmentCode/:enrollmentCode')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
+  @Get('enrollmentCode/:enrollmentCode')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
-  async findStudentByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<Student> {
+  async findStudentByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<StudentResponseDto> {
     const student = await this.studentService.student({ enrollmentCode });
 
-    if (!student) {
-      throw new HttpException('Student not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!student) throw new NotFoundException('Student not found.');
 
     return student;
   }
 
-  @Get('student')
-  async findAllProfessors(
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Get()
+  @ApiBearerAuth()
+  async findAllStudents(
     @Query() { skip, take } : FindAllParams,
-  ): Promise<Student[]> {
+  ): Promise<StudentResponseDto[]> {
     return this.studentService.students({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 }

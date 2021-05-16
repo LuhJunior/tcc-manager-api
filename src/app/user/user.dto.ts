@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserType } from '@prisma/client';
+import { Student, UserType } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { ProfessorResponseDto } from '../professor/professor.dto';
 
@@ -14,6 +14,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsEnum(UserType)
+  @ApiProperty({ enum: UserType })
   type: UserType;
 }
 
@@ -35,6 +36,7 @@ export class UserResponseDto {
    * @example 'User's Login'
    */
   login: string;
+  student?: Student;
   professor?: ProfessorResponseDto;
   @ApiProperty({ enum: UserType })
   type: UserType;
