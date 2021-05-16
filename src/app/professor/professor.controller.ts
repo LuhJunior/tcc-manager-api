@@ -43,7 +43,7 @@ export class ProfessorController {
 
   @Post('professor/advisor')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
@@ -74,6 +74,7 @@ export class ProfessorController {
     await this.userService.createUser({
       login: professorData.enrollmentCode,
       password: professorData.enrollmentCode.substr(0, 6),
+      type: 'PROFESSOR',
     });
 
     return this.professorService.createProfessor({
@@ -89,7 +90,7 @@ export class ProfessorController {
 
   @Post('professor/tcc')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Admin)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor TCC already registry for the given professorId.' })
@@ -121,6 +122,7 @@ export class ProfessorController {
     await this.userService.createUser({
       login: professorData.enrollmentCode,
       password: professorData.enrollmentCode.substr(0, 6),
+      type: 'PROFESSOR',
     });
 
     return this.professorService.createProfessor({
@@ -137,7 +139,7 @@ export class ProfessorController {
 
   @Get('professor/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Professor)
+  @Roles(Role.Admin, Role.Professor)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
@@ -150,7 +152,7 @@ export class ProfessorController {
 
   @Get('professor/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
@@ -164,7 +166,7 @@ export class ProfessorController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @Get('professor/enrollmentCode/:enrollmentCode')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
@@ -189,7 +191,7 @@ export class ProfessorController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Professor)
+  @Roles(Role.Admin, Role.Professor)
   @Patch('professor')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
@@ -210,7 +212,7 @@ export class ProfessorController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @Delete('professor/:id')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })

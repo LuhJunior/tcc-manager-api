@@ -32,10 +32,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const roles = getRoles(user.type);
+    console.log(roles)
 
     if (user.professor?.professorAdvisor) roles.push(Role.ProfessorAdvisor);
     if (user.professor?.professorTcc) roles.push(Role.ProfessorTcc);
-    console.log(roles)
     return { ...user, roles };
   }
 }

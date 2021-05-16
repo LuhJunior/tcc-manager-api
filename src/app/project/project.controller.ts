@@ -170,16 +170,19 @@ export class ProjectController {
   @Roles(Role.ProfessorAdvisor)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Application not found.' })
+  @ApiBadRequestResponse({ description: 'Application was already acepted or rejected.' })
   @ApiBadRequestResponse({ description: 'Project already have a student work on it.' })
   async acceptProjectApplication(
     @Request() req: RequestWithUser,
     @Param() { id }: FindByIdParam,
   ): Promise<{ project: ProjectResponseDto, application: Application }> {
-    const project = await this.projectService.project({ id });
+    const application = await this.projectService.application({ id });
 
-    if (!project || project.deletedAt || project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Project not found.');
+    if (application.status !== 'IN_PROGRESS') throw new BadRequestException('Application was already acepted or rejected.');
 
-    if (project.status === 'IN_PROGRESS') throw new BadRequestException('Project already have a student work on it.');
+    if (!application || application.deletedAt || application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Project not found.');
+
+    if (application.project.status === 'IN_PROGRESS') throw new BadRequestException('Project already have a student work on it.');
 
     const data = await this.projectService.acceptProjectApplication(id, req.user.professor?.professorAdvisor?.id);
 
@@ -193,15 +196,18 @@ export class ProjectController {
   @Roles(Role.ProfessorAdvisor)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Application not found.' })
+  @ApiBadRequestResponse({ description: 'Application was already acepted or rejected.' })
   async rejectProjectApplication(
     @Request() req: RequestWithUser,
     @Param() { id }: FindByIdParam,
   ): Promise<Application> {
-    const application = await this.projectService.rejectProjectApplication(id, req.user.professor?.professorAdvisor?.id);
+    const application = await this.projectService.application({ id });
 
-    if (!application) throw new NotFoundException('Application not found.');
+    if (application.status !== 'IN_PROGRESS') throw new BadRequestException('Application was already acepted or rejected.');
 
-    return application;
+    if (!application || application.deletedAt || application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Application not found.');
+
+    return this.projectService.rejectProjectApplication(id, req.user.professor?.professorAdvisor?.id);;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

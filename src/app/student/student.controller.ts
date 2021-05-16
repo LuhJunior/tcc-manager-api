@@ -21,7 +21,7 @@ export class StudentController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
@@ -30,6 +30,7 @@ export class StudentController {
     await this.userService.createUser({
       login: studentData.enrollmentCode,
       password: studentData.enrollmentCode.substr(0, 6),
+      type: 'STUDENT',
     });
 
     return this.studentService.createStudent({
@@ -47,14 +48,14 @@ export class StudentController {
   @ApiNotFoundResponse({ description: 'Student not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {
     const student = await this.studentService.student({ userId: req.user.id });
-
+    console.log(req.user)
     if (!student) throw new NotFoundException('Student not found.');
 
     return student;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @Get(':id')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
@@ -80,7 +81,7 @@ export class StudentController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary)
   @Get()
   @ApiBearerAuth()
   async findAllStudents(

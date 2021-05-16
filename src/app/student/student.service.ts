@@ -19,6 +19,7 @@ export class StudentService {
       },
     });
 
+
     if (!student || student.deletedAt) {
       return null;
     }
