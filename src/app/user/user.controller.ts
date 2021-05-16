@@ -9,6 +9,7 @@ import {
   HttpException,
   HttpStatus,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
@@ -37,7 +38,7 @@ export class UserController {
     const user = await this.userService.user({ id });
 
     if (!user) {
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('User not found.');
     }
 
     return user;

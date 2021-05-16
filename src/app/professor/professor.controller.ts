@@ -5,11 +5,14 @@ import {
   Post,
   Body,
   Patch,
+  Request,
   Delete,
   HttpStatus,
   HttpException,
   Query,
   BadRequestException,
+  NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { ProfessorService } from './professor.service';
 import {
@@ -21,8 +24,14 @@ import {
   UpdateProfessorDto,
   ProfessorResponseDto
 } from './professor.dto';
-import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequestWithUser } from '../auth/auth.interface';
+import { Roles } from 'src/decorators/roles.decorator';
+import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
+
 
 @ApiTags('Professor')
 @Controller()
@@ -33,6 +42,8 @@ export class ProfessorController {
   ) {}
 
   @Post('professor/advisor')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
@@ -42,11 +53,11 @@ export class ProfessorController {
       const professor = await this.professorService.professor({ id: professorData.professorId });
 
       if (!professor) {
-        throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+        throw new NotFoundException('Professor not found.')
       }
 
       if (professor.professorAdvisor) {
-        throw new HttpException('Professor Advisor already registry for the given professorId.', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException('Professor Advisor already registry for the given professorId.')
       }
 
       await this.professorService.createProfessorAdvisor({
@@ -77,6 +88,9 @@ export class ProfessorController {
   }
 
   @Post('professor/tcc')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor TCC already registry for the given professorId.' })
   async createProfessorTcc(
@@ -121,7 +135,23 @@ export class ProfessorController {
   }
 
 
+  @Get('professor/me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Professor)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
+    const professor = await this.professorService.professor({ userId: req.user.id });
+
+    if (!professor) throw new NotFoundException('Professor not found.');
+
+    return professor;
+  }
+
   @Get('professor/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ id });
@@ -133,7 +163,10 @@ export class ProfessorController {
     return professor;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
   @Get('professor/enrollmentCode/:enrollmentCode')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ enrollmentCode });
@@ -145,32 +178,41 @@ export class ProfessorController {
     return professor;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
   @Get('professor')
+  @ApiBearerAuth()
   async findAllProfessors(
     @Query() { skip, take } : FindAllParams,
   ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
-  @Patch('professor/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Professor)
+  @Patch('professor')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async updateProfessor(
-    @Param() { id }: FindByIdParam,
+    @Request() req: RequestWithUser,
     @Body() professorData: UpdateProfessorDto,
   ): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.updateProfessor({
       data: professorData,
-      where: { id },
+      where: { id: req.user.professor?.id },
     });
 
     if (!professor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('Professor not found.');
     }
 
     return professor;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Secretary)
   @Delete('professor/:id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async deleteProfessor(
     @Param() { id }: FindByIdParam,

@@ -14,7 +14,7 @@ export class UserService {
     return this.prisma.user.create({ data: { ...data, password: await bcrypt.hash(data.password, 10) } });
   }
 
-  async user(where: Prisma.UserWhereUniqueInput): Promise<User | null> {
+  async user(where: Prisma.UserWhereUniqueInput) {
     const user = await this.prisma.user.findUnique({
       where,
       include: {

@@ -31,10 +31,10 @@ export class ProjectService {
     return this.prisma.application.create({ data: { project: { connect: { id: projectId } }, student: { connect: { id: studentId } } } });
   }
 
-  async acceptProjectApplication(applicationId: string): Promise<{ project: Project, application: Application } | null> {
+  async acceptProjectApplication(applicationId: string, professorAdvisorId: string): Promise<{ project: Project, application: Application } | null> {
     const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
 
-    if (!application || application.deletedAt || !application.project || application.project.deletedAt) {
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt || application.project.professorAdvisorId !== professorAdvisorId) {
       return null;
     }
 
@@ -60,10 +60,10 @@ export class ProjectService {
     return ({ project: updatedProject, application: updatedApplication });
   }
 
-  async rejectProjectApplication(applicationId: string): Promise<Application> {
+  async rejectProjectApplication(applicationId: string, professorAdvisorId: string): Promise<Application> {
     const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
 
-    if (!application || application.deletedAt || !application.project || application.project.deletedAt) {
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt || application.project.professorAdvisorId !== professorAdvisorId) {
       return null;
     }
 
@@ -75,6 +75,38 @@ export class ProjectService {
         id: applicationId,
       },
     });
+  }
+
+  async deleteProjectApplication(applicationId: string, professorAdvisorId: string): Promise<Application> {
+    const application = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { project: true } });
+
+    if (!application || application.deletedAt || !application.project || application.project.deletedAt || application.project.professorAdvisorId !== professorAdvisorId) {
+      return null;
+    }
+
+    return this.prisma.application.update({
+      data: {
+        deletedAt: new Date(),
+      },
+      where: {
+        id: applicationId,
+      },
+    });
+  }
+
+  async application(where: Prisma.ApplicationWhereUniqueInput) {
+    const application = await this.prisma.application.findUnique({
+      where,
+      include: {
+        project: true,
+      },
+    });
+
+    if (!application || application.deletedAt) {
+      return null;
+    }
+
+    return application;
   }
 
   async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput): Promise<Project | null> {
@@ -131,12 +163,12 @@ export class ProjectService {
   }
 
   async updateProject({ where, data }: {
-    where: Prisma.ProjectWhereUniqueInput;
+    where: Prisma.ProjectWhereUniqueInput & { professorAdvisorId?: string };
     data: Prisma.ProjectUpdateInput;
   }): Promise<Project | null> {
     const project = await this.prisma.project.findUnique({ where });
 
-    if (!project || project.deletedAt) {
+    if (!project || project.deletedAt || (where.professorAdvisorId && project.professorAdvisorId !== where.professorAdvisorId)) {
       return null;
     }
 
@@ -146,10 +178,10 @@ export class ProjectService {
     });
   }
 
-  async deleteProject(where: Prisma.ProjectWhereUniqueInput): Promise<Project | null> {
+  async deleteProject(where: Prisma.ProjectWhereUniqueInput & { professorAdvisorId?: string }): Promise<Project | null> {
     const project = await this.prisma.project.findUnique({ where });
 
-    if (!project || project.deletedAt) {
+    if (!project || project.deletedAt || (where.professorAdvisorId && project.professorAdvisorId !== where.professorAdvisorId)) {
       return null;
     }
 

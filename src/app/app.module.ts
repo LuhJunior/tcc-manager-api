@@ -13,7 +13,7 @@ MulterModule.register({
 });
 
 @Module({
-  imports: [DataUploadModule, ProfessorModule, ProjectModule, AuthModule, UserModule, StudentModule],
+  imports: [AuthModule, DataUploadModule, ProfessorModule, ProjectModule, UserModule, StudentModule],
   controllers: [],
   providers: [],
 })

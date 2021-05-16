@@ -33,6 +33,20 @@ Caso possua o docker para começar a desenvolver basta apenas executar:
 $ docker-compose up -d
 ```
 
+## Migration
+
+### Create
+
+```bash
+$ npx prisma migrate dev
+```
+
+### Run
+```bash
+# production
+$ npx prisma migrate deploy
+```
+
 ### Testes
 Para executar os teste automatizados basta rodar um dos seguintes comandos:
 
