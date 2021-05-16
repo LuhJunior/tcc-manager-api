@@ -1,5 +1,7 @@
 import { IsEmail, IsNotEmpty, IsInt, IsNumberString, IsOptional, IsString, IsUUID, MaxLength, ValidateIf,  } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApplicationStatus } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStudentDto {
   @IsNotEmpty()
@@ -91,13 +93,25 @@ export class CreateStudentDto {
 //   phoneNumber?: string | undefined;
 // }
 
-// export class ProfessorResponseDto {
-//   id: string;
-//   name: string;
-//   enrollmentCode: string;
-//   email: string;
-//   phoneNumber: string;
-//   createdAt: Date;
-//   updatedAt: Date;
-//   deletedAt?: Date;
-// }
+class ApplicationDto {
+  id: string;
+  studentId: string;
+  projectId: string;
+  @ApiProperty({ enum: ApplicationStatus })
+  status: ApplicationStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date;
+}
+
+export class StudentResponseDto {
+  id: string;
+  name: string;
+  enrollmentCode: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  applications?: ApplicationDto[];
+}

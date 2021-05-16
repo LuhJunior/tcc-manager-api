@@ -4,43 +4,49 @@ import {
   Param,
   Post,
   Body,
-  Put,
   Patch,
   Delete,
-  HttpException,
-  HttpStatus,
+  Request,
   Query,
+  UseGuards,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { ProfessorService } from '../professor/professor.service';
 import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto, CreateProjectApplicationDto } from './project.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { Application } from '.prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequestWithUser } from '../auth/auth.interface';
+import { Roles } from 'src/decorators/roles.decorator';
+import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
 
 @ApiTags('Project')
-@Controller()
+@Controller('project')
 export class ProjectController {
   constructor(
     private readonly projectService: ProjectService,
     private readonly professorService: ProfessorService,
   ) {}
 
-  @Post('project')
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor is not an advisor.' })
   async createProject(
-    @Body() { title, description, professorId, files }: CreateProjectDto,
+    @Request() req: RequestWithUser,
+    @Body() { title, description, files }: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
-    const professor = await this.professorService.professor({ id: professorId });
+    const professor = await this.professorService.professor({ id: req.user.professor?.id });
 
-    if (!professor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!professor) throw new NotFoundException('Professor not found.');
 
-    if (!professor.professorAdvisor) {
-      throw new HttpException('Professor is not an advisor.', HttpStatus.BAD_REQUEST);
-    }
+    if (!professor.professorAdvisor)  throw new BadRequestException('Professor is not an advisor.');
 
     return this.projectService.createProject({
       title,
@@ -58,35 +64,39 @@ export class ProjectController {
     });
   }
 
-  @Post('project/application')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Student)
+  @Post('application')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project or Student not found.' })
   async createProjectApplication(
-    @Body() { projectId, studentId }: CreateProjectApplicationDto,
+    @Request() req: RequestWithUser,
+    @Body() { projectId }: CreateProjectApplicationDto,
   ): Promise<Application> {
-    const application = await this.projectService.createProjectApplication(projectId, studentId);
+    const application = await this.projectService.createProjectApplication(projectId, req.user.student?.id);
 
-    if (!application) {
-      throw new HttpException('Project or Student not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!application) throw new NotFoundException('Project or Student not found.');
 
-    return this.projectService.createProjectApplication(projectId, studentId);
+    return application;
   }
 
-  @Get('project/:id')
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project not found.' })
   async findProjectById(
     @Param() { id }: FindByIdParam
   ): Promise<ProjectResponseDto> {
     const project = await this.projectService.project({ id });
 
-    if (!project) {
-      throw new HttpException('Project not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!project) throw new NotFoundException('Project not found.');
 
     return project;
   }
 
-  @Get('project/professor/:id')
+  @UseGuards(JwtAuthGuard)
+  @Get('professor/:id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project not found.' })
   async findProjectByProfessorId(
     @Param() { id }: FindByIdParam,
@@ -94,96 +104,145 @@ export class ProjectController {
   ): Promise<ProjectResponseDto[]> {
     const professor = await this.professorService.professor({ id });
 
-    if (!professor || !professor.professorAdvisor) {
-      throw new HttpException('Professor not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!professor || !professor.professorAdvisor) throw new NotFoundException('Professor not found.');
 
     return this.projectService.projects({ skip, take, where: { professorAdvisorId: professor.professorAdvisor.id }, orderBy: { createdAt: 'desc' } });
   }
 
-  @Get('project')
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  @ApiBearerAuth()
   async findAllProjects(
     @Param() { skip, take }: FindAllParams,
   ): Promise<ProjectResponseDto[]> {
     return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
-  @Patch('project/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id')
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project not found.' })
   async updateProjectFields(
+    @Request() req: RequestWithUser,
     @Param() { id }: FindByIdParam,
     @Body() projectData: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
-      where: { id },
+      where: { id, professorAdvisorId: req.user.professor?.professorAdvisor?.id },
       data: projectData,
     });
 
-    if (!project) {
-      throw new HttpException('Project not found.', HttpStatus.NOT_FOUND);
-    }
+    if (!project) throw new NotFoundException('Project not found.');
 
     return project;
   }
 
-  @Patch('project/:id/deactivate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/deactivate')
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project not found.' })
+  @ApiBadRequestResponse({ description: 'Project is already deactivated.' })
+  @ApiBadRequestResponse({ description: 'Can\'t deactivate a project in progress.' })
   async deactivateProject(
-    @Param() { id }: FindByIdParam
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
   ): Promise<ProjectResponseDto> {
-    const project = await this.projectService.updateProject({
+    const project = await this.projectService.project({ id });
+
+    if (!project || project.deletedAt || project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Project not found.');
+
+    if (project.status === 'DISABLED') throw new BadRequestException('Project is already deactivated.');
+
+    if (project.status === 'IN_PROGRESS') throw new BadRequestException('Can\'t deactivate a project in progress.');
+
+    return this.projectService.updateProject({
       where: { id },
       data: {
         status: 'DISABLED',
       },
-    });
-
-    if (!project) {
-      throw new HttpException('Project not found.', HttpStatus.NOT_FOUND);
-    }
-
-    return project;
+    });;
   }
 
-  @Patch('project/application/:id/accept')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch('application/:id/accept')
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Application not found.' })
+  @ApiBadRequestResponse({ description: 'Application was already acepted or rejected.' })
+  @ApiBadRequestResponse({ description: 'Project already have a student work on it.' })
   async acceptProjectApplication(
-    @Param() { id }: FindByIdParam
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
   ): Promise<{ project: ProjectResponseDto, application: Application }> {
-    const data = await this.projectService.acceptProjectApplication(id);
+    const application = await this.projectService.application({ id });
 
-    if (!data) {
-      throw new HttpException('Application not found.', HttpStatus.NOT_FOUND);
-    }
+    if (application.status !== 'IN_PROGRESS') throw new BadRequestException('Application was already acepted or rejected.');
+
+    if (!application || application.deletedAt || application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Project not found.');
+
+    if (application.project.status === 'IN_PROGRESS') throw new BadRequestException('Project already have a student work on it.');
+
+    const data = await this.projectService.acceptProjectApplication(id, req.user.professor?.professorAdvisor?.id);
+
+    if (!data) throw new NotFoundException('Application not found.');
 
     return data;
   }
 
-  @Patch('project/application/:id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch('application/:id/reject')
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Application not found.' })
+  @ApiBadRequestResponse({ description: 'Application was already acepted or rejected.' })
   async rejectProjectApplication(
-    @Param() { id }: FindByIdParam
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
   ): Promise<Application> {
-    const application = await this.projectService.rejectProjectApplication(id);
+    const application = await this.projectService.application({ id });
 
-    if (!application) {
-      throw new HttpException('Application not found.', HttpStatus.NOT_FOUND);
-    }
+    if (application.status !== 'IN_PROGRESS') throw new BadRequestException('Application was already acepted or rejected.');
 
-    return application;
+    if (!application || application.deletedAt || application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Application not found.');
+
+    return this.projectService.rejectProjectApplication(id, req.user.professor?.professorAdvisor?.id);;
   }
 
-  @Delete('project/:id')
-  @ApiNotFoundResponse({ description: 'Project not found.' })
-  async deleteProject(
-    @Param() { id }: FindByIdParam
-  ): Promise<ProjectResponseDto> {
-    const project = await this.projectService.deleteProject({ id });
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('application/:id/remove')
+  @Roles(Role.ProfessorAdvisor, Role.Student)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Application not found.' })
+  async removeProjectApplication(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+  ): Promise<Application> {
+    const application = await this.projectService.application({ id });
 
-    if (!project) {
-      throw new HttpException('Project not found.', HttpStatus.NOT_FOUND);
+    if (!application || (application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id && application.studentId !== req.user.student?.id)) {
+      throw new NotFoundException('Application not found.');
     }
 
-    return project;
+    return this.projectService.deleteProjectApplication(id, application.project.professorAdvisorId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete(':id')
+  @Roles(Role.ProfessorAdvisor)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Project not found.' })
+  async deleteProject(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+  ): Promise<ProjectResponseDto> {
+    const project = await this.projectService.project({ id });
+
+    if (!project || project.deletedAt ||  project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id) throw new NotFoundException('Project not found.');
+
+    if (project.status === 'IN_PROGRESS') throw new BadRequestException('Can\'t delete a project in progress.');
+
+    return this.projectService.deleteProject({ id });;
   }
 }

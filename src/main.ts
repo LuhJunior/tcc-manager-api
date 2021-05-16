@@ -26,6 +26,7 @@ import config from './config/configuration';
     .setTitle('TCC Manager API')
     .setDescription('API para gerenciar dados dos projetos de TCC')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, db);
   SwaggerModule.setup('api', app, document);
