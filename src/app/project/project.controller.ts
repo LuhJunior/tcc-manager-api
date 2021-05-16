@@ -20,9 +20,9 @@ import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { Application } from '.prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequestWithUser } from '../auth/auth.interface';
-import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/enums/role.enum';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
+import { Role } from '../../enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
 
 @ApiTags('Project')
 @Controller('project')
@@ -69,10 +69,24 @@ export class ProjectController {
   @Post('application')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Project or Student not found.' })
+  @ApiBadRequestResponse({ description: 'Student already have an application in progress for this project.' })
   async createProjectApplication(
     @Request() req: RequestWithUser,
     @Body() { projectId }: CreateProjectApplicationDto,
   ): Promise<Application> {
+    const applications = await this.projectService.applications({
+      where: {
+        projectId,
+        studentId: req.user.student?.id,
+        OR: [
+          { status: 'IN_PROGRESS' },
+          { status: 'ACCEPTED' },
+        ],
+      },
+    });
+
+    if (applications.length) throw new BadRequestException('Student already have an application for this project.');
+
     const application = await this.projectService.createProjectApplication(projectId, req.user.student?.id);
 
     if (!application) throw new NotFoundException('Project or Student not found.');
@@ -222,7 +236,7 @@ export class ProjectController {
     const application = await this.projectService.application({ id });
 
     if (!application || (application.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id && application.studentId !== req.user.student?.id)) {
-      throw new NotFoundException('Application not found.');
+      throw new NotFoundException(application, 'Application not found.');
     }
 
     return this.projectService.deleteProjectApplication(id, application.project.professorAdvisorId);

@@ -1,19 +1,34 @@
 import * as request from 'supertest';
 import * as faker from 'faker';
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
 import { ProfessorModule } from '../src/app/professor/professor.module';
 import { PrismaClient } from '@prisma/client';
+import { JwtAuthGuard } from '../src/app/auth/jwt-auth.guard';
+import { AuthModule } from '../src/app/auth/auth.module';
+import { JwtStrategy } from '../src/app/auth/jwt.strategy';
 
 const prisma = new PrismaClient();
 
 describe('professor.e2e.spec.ts', () => {
   let app: INestApplication;
+  let jwtToken: string;
 
   beforeAll(async () => {
     app = (
       await Test.createTestingModule({
-        imports: [ProfessorModule],
+        imports: [ProfessorModule, AuthModule],
+      })
+      .overrideProvider(JwtAuthGuard)
+      .useClass({
+        validate: ({ id }: { id: string }) => {
+          return { id };
+          // const req = context.switchToHttp().getRequest();
+          // req.user = {
+
+          // };
+          // return true;
+        },
       })
       .compile()
     ).createNestApplication()
@@ -21,9 +36,25 @@ describe('professor.e2e.spec.ts', () => {
         transform: true,
       }));
 
-    prisma.$executeRaw('DELETE FROM professor');
+    await prisma.user.upsert({
+      create: {
+        login: 'AdminTest',
+        password: '$2b$10$d6fJ1z.e0NUfsQhdgjVkzuZphkbakJFRI05/g1uvKTu1RxyS8bk9u',
+        type: 'ADMIN',
+      },
+      update: {
+        password: '$2b$10$d6fJ1z.e0NUfsQhdgjVkzuZphkbakJFRI05/g1uvKTu1RxyS8bk9u',
+      },
+      where: {
+        login: 'AdminTest',
+      },
+    });
+
+    // prisma.$executeRaw('DELETE FROM professor');
 
     await app.init();
+
+    jwtToken = (await request(app.getHttpServer()).post('/auth/login').send({ login: 'AdminTest', password: '123456' })).body.accessToken;
   });
 
   afterAll(async () => {
@@ -42,6 +73,7 @@ describe('professor.e2e.spec.ts', () => {
 
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send(professor);
 
         expect(res.status).toBe(201);
@@ -51,6 +83,7 @@ describe('professor.e2e.spec.ts', () => {
       it('Should create an advisor professor from a tcc professor', async () => {
         const professor = (await request(app.getHttpServer())
           .post('/professor/tcc')
+          .auth(jwtToken, { type: 'bearer' })
           .send({
             name: faker.name.findName(),
             email: faker.internet.email(),
@@ -60,6 +93,7 @@ describe('professor.e2e.spec.ts', () => {
 
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send({ professorId: professor.id});
 
         expect(res.status).toBe(201);
@@ -69,6 +103,7 @@ describe('professor.e2e.spec.ts', () => {
       it('If name is not a string, should return a status 400', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send({
             name: faker.datatype.number(),
             email: faker.internet.email(),
@@ -89,6 +124,7 @@ describe('professor.e2e.spec.ts', () => {
       it('If the body request is empty, should return a status 400', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send({ });
 
         expect(res.status).toBe(400);
@@ -115,12 +151,14 @@ describe('professor.e2e.spec.ts', () => {
       it('If the professor with given id not exist, should return a 404 status', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send({ professorId: faker.datatype.uuid() });
 
         expect(res.status).toBe(404);
         expect(res.body).toEqual({
           statusCode: 404,
-          message: 'Professor not found.'
+          message: 'Professor not found.',
+          error: 'Not Found',
         });
       });
     });
@@ -136,6 +174,7 @@ describe('professor.e2e.spec.ts', () => {
 
         const res = await request(app.getHttpServer())
           .post('/professor/tcc')
+          .auth(jwtToken, { type: 'bearer' })
           .send(professor);
 
         expect(res.status).toBe(201);
@@ -145,6 +184,7 @@ describe('professor.e2e.spec.ts', () => {
       it('Should create a TCC professor from an advisor professor', async () => {
         const professor = (await request(app.getHttpServer())
           .post('/professor/advisor')
+          .auth(jwtToken, { type: 'bearer' })
           .send({
             name: faker.name.findName(),
             email: faker.internet.email(),
@@ -154,6 +194,7 @@ describe('professor.e2e.spec.ts', () => {
 
         const res = await request(app.getHttpServer())
           .post('/professor/tcc')
+          .auth(jwtToken, { type: 'bearer' })
           .send({ professorId: professor.id});
 
         expect(res.status).toBe(201);
@@ -163,6 +204,7 @@ describe('professor.e2e.spec.ts', () => {
       it('If name is not a string, should return a status 400', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/tcc')
+          .auth(jwtToken, { type: 'bearer' })
           .send({
             name: faker.datatype.number(),
             email: faker.internet.email(),
@@ -183,6 +225,7 @@ describe('professor.e2e.spec.ts', () => {
       it('If the body request is empty, should return a status 400', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/tcc')
+          .auth(jwtToken, { type: 'bearer' })
           .send({ });
 
         expect(res.status).toBe(400);
@@ -209,12 +252,14 @@ describe('professor.e2e.spec.ts', () => {
       it('If the professor with given id not exist, should return a 404 status', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/tcc')
-          .send({ professorId: faker.datatype.uuid() });
+          .auth(jwtToken, { type: 'bearer' })
+          .send({ professorId: faker.datatype.uuid() })
 
         expect(res.status).toBe(404);
         expect(res.body).toEqual({
           statusCode: 404,
-          message: 'Professor not found.'
+          message: 'Professor not found.',
+          error: 'Not Found',
         });
       });
     });
@@ -225,6 +270,7 @@ describe('professor.e2e.spec.ts', () => {
     it('Should return an advisor professor', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/advisor')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -233,7 +279,8 @@ describe('professor.e2e.spec.ts', () => {
         })).body;
 
       const res = await request(app.getHttpServer())
-        .get(`/professor/${professor.id}`);
+        .get(`/professor/${professor.id}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(expect.objectContaining(professor));
@@ -242,6 +289,7 @@ describe('professor.e2e.spec.ts', () => {
     it('Should return a TCC professor', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/tcc')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -250,7 +298,8 @@ describe('professor.e2e.spec.ts', () => {
         })).body;
 
       const res = await request(app.getHttpServer())
-        .get(`/professor/${professor.id}`);
+        .get(`/professor/${professor.id}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(expect.objectContaining(res.body));
@@ -258,7 +307,8 @@ describe('professor.e2e.spec.ts', () => {
 
     it('If param id is not an uuid, should return a 400 status', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/professor/${faker.datatype.number()}`);
+        .get(`/professor/${faker.datatype.number()}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ statusCode: 400, message: ['id must be a UUID'], error: 'Bad Request' });
@@ -266,10 +316,11 @@ describe('professor.e2e.spec.ts', () => {
 
     it('If the professor with given id not exist, should return a 404 status', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/professor/${faker.datatype.uuid()}`);
+        .get(`/professor/${faker.datatype.uuid()}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(404);
-      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.' });
+      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.', error: 'Not Found', });
     });
   });
 
@@ -277,6 +328,7 @@ describe('professor.e2e.spec.ts', () => {
     it('Should return an advisor professor', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/advisor')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -285,7 +337,8 @@ describe('professor.e2e.spec.ts', () => {
         })).body;
 
       const res = await request(app.getHttpServer())
-        .get(`/professor/enrollmentCode/${professor.enrollmentCode}`);
+        .get(`/professor/enrollmentCode/${professor.enrollmentCode}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(expect.objectContaining(professor));
@@ -294,6 +347,7 @@ describe('professor.e2e.spec.ts', () => {
     it('Should return a TCC professor', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/tcc')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -309,7 +363,8 @@ describe('professor.e2e.spec.ts', () => {
 
     it('If param enrollmentCode is not an alphaNumeric, should return a 400 status', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/professor/enrollmentCode/${faker.random.alpha({ count: 10 })}`);
+        .get(`/professor/enrollmentCode/${faker.random.alpha({ count: 10 })}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ statusCode: 400, message: ['enrollmentCode must be a number string'], error: 'Bad Request' });
@@ -317,10 +372,11 @@ describe('professor.e2e.spec.ts', () => {
 
     it('If the professor with given id not exist, should return a 404 status', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/professor/enrollmentCode/${faker.datatype.number({ min: 10000000000 }).toString()}`);
+        .get(`/professor/enrollmentCode/${faker.datatype.number({ min: 10000000000 }).toString()}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(404);
-      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.' });
+      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.', error: 'Not Found', });
     });
   });
 
@@ -332,6 +388,7 @@ describe('professor.e2e.spec.ts', () => {
           .map(async () => (
             (await request(app.getHttpServer())
               .post('/professor/advisor')
+              .auth(jwtToken, { type: 'bearer' })
               .send({
                 name: faker.name.findName(),
                 email: faker.internet.email(),
@@ -342,7 +399,7 @@ describe('professor.e2e.spec.ts', () => {
           )
         );
 
-      const res = await request(app.getHttpServer()).get('/professor');
+      const res = await request(app.getHttpServer()).get('/professor').auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBeGreaterThanOrEqual(professors.length);
@@ -356,6 +413,7 @@ describe('professor.e2e.spec.ts', () => {
           .map(async () => (
             (await request(app.getHttpServer())
               .post('/professor/tcc')
+              .auth(jwtToken, { type: 'bearer' })
               .send({
                 name: faker.name.findName(),
                 email: faker.internet.email(),
@@ -366,7 +424,7 @@ describe('professor.e2e.spec.ts', () => {
           )
         );
 
-      const res = await request(app.getHttpServer()).get('/professor').query({ skip: 1, take: 3 });
+      const res = await request(app.getHttpServer()).get('/professor').query({ skip: 1, take: 3 }).auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBeGreaterThanOrEqual(3);
@@ -377,6 +435,7 @@ describe('professor.e2e.spec.ts', () => {
     it('Should update a professor', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/advisor')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -391,8 +450,11 @@ describe('professor.e2e.spec.ts', () => {
         phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
       };
 
+      const token = (await request(app.getHttpServer()).post('/auth/login').send({ login: professor.enrollmentCode, password: professor.enrollmentCode.substr(0, 6) })).body.accessToken;
+
       const res = await request(app.getHttpServer())
-        .patch(`/professor/${professor.id}`)
+        .patch('/professor')
+        .auth(token, { type: 'bearer' })
         .send(uProfessor);
 
       expect(res.status).toBe(200);
@@ -402,6 +464,7 @@ describe('professor.e2e.spec.ts', () => {
     it('If name is not a string, should return a status 400', async () => {
       const professor = (await request(app.getHttpServer())
         .post('/professor/advisor')
+        .auth(jwtToken, { type: 'bearer' })
         .send({
           name: faker.name.findName(),
           email: faker.internet.email(),
@@ -416,8 +479,11 @@ describe('professor.e2e.spec.ts', () => {
         phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
       };
 
+      const token = (await request(app.getHttpServer()).post('/auth/login').send({ login: professor.enrollmentCode, password: professor.enrollmentCode.substr(0, 6) })).body.accessToken;
+
       const res = await request(app.getHttpServer())
-        .patch(`/professor/${professor.id}`)
+        .patch('/professor')
+        .auth(token, { type: 'bearer' })
         .send(uProfessor);
 
       expect(res.status).toBe(400);
@@ -430,57 +496,64 @@ describe('professor.e2e.spec.ts', () => {
       });
     });
 
-    it('If the professor with given id not exist, should return a 404 status', async () => {
-      const res = await request(app.getHttpServer())
-        .patch(`/professor/${faker.datatype.uuid()}`)
-        .send({
-          name: faker.name.findName(),
-          email: faker.internet.email(),
-          enrollmentCode: faker.datatype.number({ min: 10000000000 }).toString(),
-          phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
-        });
+    // it('If the professor with given id not exist, should return a 404 status', async () => {
+    //   const res = await request(app.getHttpServer())
+    //     .patch(`/professor/${faker.datatype.uuid()}`)
+    //     .auth(jwtToken, { type: 'bearer' })
+    //     .send({
+    //       name: faker.name.findName(),
+    //       email: faker.internet.email(),
+    //       enrollmentCode: faker.datatype.number({ min: 10000000000 }).toString(),
+    //       phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
+    //     });
 
-      expect(res.status).toBe(404);
-      expect(res.body).toEqual({
-        statusCode: 404,
-        message: 'Professor not found.'
-      });
-    });
+    //   expect(res.status).toBe(404);
+    //   expect(res.body).toEqual({
+    //     statusCode: 404,
+    //     message: 'Professor not found.',
+    //     error: 'Not Found',
+    //   });
+    // });
   });
 
   describe('/DELETE professor', () => {
-    it('Should delete a professor', async () => {
-      const professor = (await request(app.getHttpServer())
-        .post('/professor/tcc')
-        .send({
-          name: faker.name.findName(),
-          email: faker.internet.email(),
-          enrollmentCode: faker.datatype.number({ min: 10000000000 }).toString(),
-          phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
-        })).body;
+    // it('Should delete a professor', async () => {
+    //   const professor = (await request(app.getHttpServer())
+    //     .post('/professor/tcc')
+    //     .auth(jwtToken, { type: 'bearer' })
+    //     .send({
+    //       name: faker.name.findName(),
+    //       email: faker.internet.email(),
+    //       enrollmentCode: faker.datatype.number({ min: 10000000000 }).toString(),
+    //       phoneNumber: faker.phone.phoneNumber('(##)#####-####'),
+    //     })).body;
 
-      const res = await request(app.getHttpServer())
-        .delete(`/professor/${professor.id}`);
+    //   const res = await request(app.getHttpServer())
+    //     .delete(`/professor/${professor.id}`)
+    //     .auth(jwtToken, { type: 'bearer' });
 
-      delete professor.deletedAt;
-      delete professor.updatedAt;
-      expect(res.body).toEqual(expect.objectContaining(professor));
-      expect((await request(app.getHttpServer()).get(`/professor/${professor.id}`)).body).toEqual({ statusCode: 404, message: 'Professor not found.' });
-    });
+    //   delete professor.deletedAt;
+    //   delete professor.updatedAt;
+    //   expect(res.body).toEqual(expect.objectContaining(professor));
+    //   expect((await request(app.getHttpServer()).get(`/professor/${professor.id}`)).body).toEqual({ statusCode: 404, message: 'Professor not found.' });
+    // });
 
     it('If param id is not an uuid, should return a 400 status', async () => {
       const res = await request(app.getHttpServer())
-        .delete(`/professor/${faker.random.alphaNumeric(10)}`);
+        .delete(`/professor/${faker.random.alphaNumeric(10)}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ statusCode: 400, message: ['id must be a UUID'], error: 'Bad Request' });
     });
 
     it('If the professor with given id not exist, should return a 404 status', async () => {
-      const res = await request(app.getHttpServer()).delete(`/professor/${faker.datatype.uuid()}`);
+      const res = await request(app.getHttpServer())
+        .delete(`/professor/${faker.datatype.uuid()}`)
+        .auth(jwtToken, { type: 'bearer' });
 
       expect(res.status).toBe(404);
-      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.' });
+      expect(res.body).toEqual({ statusCode: 404, message: 'Professor not found.', error: 'Not Found', });
     });
   });
 });

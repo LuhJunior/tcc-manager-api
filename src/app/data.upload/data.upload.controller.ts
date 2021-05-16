@@ -40,6 +40,8 @@ export class DataUploadController {
     return await this.dataUploadService.sendFileUpload(files.map(({ originalname, buffer }) => ({ filename: originalname, buffer })));
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Student)
   @Post('pdf')
   async savePdf() {
     const localStorageService = new LocalStorageService();

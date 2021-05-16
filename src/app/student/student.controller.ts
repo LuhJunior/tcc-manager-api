@@ -1,9 +1,8 @@
-import { Student } from '.prisma/client';
 import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
-import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/enums/role.enum';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
+import { Role } from '../../enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
 import { RequestWithUser } from '../auth/auth.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../professor/professor.dto';
