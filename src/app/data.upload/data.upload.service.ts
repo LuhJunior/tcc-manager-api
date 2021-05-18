@@ -13,14 +13,13 @@ export class FirebaseService implements IDataUploadService {
     const bucket = admin.storage().bucket(config.bucketName);
 
     return Promise.all(files.map(async ({ filename, buffer }) => {
-      const gcsname = new Date().toISOString() + filename;
+      const gcsname = `${new Date().toISOString()}${filename.split('.')[0]}/${filename}`;
 
       try {
         await bucket.file(gcsname).save(buffer);
 
         return (await bucket.file(gcsname).getSignedUrl({
           action: 'read',
-          cname: filename,
           expires: new Date(2500, 1, 1),
         })).toString();
       } catch (e) {

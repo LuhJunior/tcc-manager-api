@@ -258,11 +258,11 @@ export class ProjectService {
     return this.prisma.application.update({
       data: {
         deletedAt: new Date(),
-        project: {
+        project: application.status === 'ACCEPTED' ? {
           update: {
             status: 'ACTIVE',
           },
-        },
+        } : undefined,
       },
       where: {
         id: applicationId,

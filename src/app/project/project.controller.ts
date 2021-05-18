@@ -169,7 +169,7 @@ export class ProjectController {
 
     const buffer =  await this.pdfService.createPdf(professor.name, professor.email, application.project.title, req.user.student.name);
 
-    const [fileUrl] = await this.dataUploadServie.sendFileUpload([{ filename: `TERMO_ACEITACAO_${professor.name}_${req.user.student.name}_${application.project.title}`, buffer }]);
+    const [fileUrl] = await this.dataUploadServie.sendFileUpload([{ filename: `TERMO_ACEITACAO_${professor.name}_${req.user.student.name}_${application.project.title}.pdf`, buffer }]);
 
     return { fileUrl };
   }
@@ -182,11 +182,19 @@ export class ProjectController {
   async updateProjectFields(
     @Request() req: RequestWithUser,
     @Param() { id }: FindByIdParam,
-    @Body() projectData: UpdateProjectDto,
+    @Body() { title, description, files }: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     const project = await this.projectService.updateProject({
       where: { id, professorAdvisorId: req.user.professor?.professorAdvisor?.id },
-      data: projectData,
+      data: {
+        title,
+        description,
+        files: files && {
+          createMany: {
+            data: files.map(({ title, description, fileUrl }) => ({ title, description, fileUrl, professorId: req.user.professor?.id })),
+          },
+        },
+      },
     });
 
     if (!project) throw new NotFoundException('Project not found.');
