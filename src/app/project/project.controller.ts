@@ -134,7 +134,6 @@ export class ProjectController {
     @Query() { skip, take }: FindAllParams,
   ): Promise<ProjectResponseDto[]> {
     const professor = await this.professorService.professor({ id });
-
     if (!professor || !professor.professorAdvisor) throw new NotFoundException('Professor not found.');
 
     return this.projectService.projects({ skip, take, where: { professorAdvisorId: professor.professorAdvisor.id }, orderBy: { createdAt: 'desc' } });
@@ -144,9 +143,10 @@ export class ProjectController {
   @Get()
   @ApiBearerAuth()
   async findAllProjects(
+    @Request() req: RequestWithUser,
     @Param() { skip, take }: FindAllParams,
   ): Promise<ProjectResponseDto[]> {
-    return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' } });
+    return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' }, where: { applications: { every: { studentId: req.user.student?.id } } } });
   }
 
   @UseGuards(JwtAuthGuard)
