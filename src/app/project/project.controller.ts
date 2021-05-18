@@ -146,7 +146,21 @@ export class ProjectController {
     @Request() req: RequestWithUser,
     @Param() { skip, take }: FindAllParams,
   ): Promise<ProjectResponseDto[]> {
-    return this.projectService.projects({ skip, take, orderBy: { createdAt: 'desc' }, where: { applications: { every: { studentId: req.user.student?.id } } } });
+    return this.projectService.projects({
+      skip,
+      take,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        applications: {
+          where: {
+            deletedAt: null,
+            studentId: req.user.student?.id,
+          },
+        },
+      },
+    });
   }
 
   @UseGuards(JwtAuthGuard)

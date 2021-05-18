@@ -177,12 +177,13 @@ export class ProjectService {
     return project;
   }
 
-  async projects({ skip, take, cursor, where, orderBy }: {
+  async projects({ skip, take, cursor, where, orderBy, include }: {
     skip?: number;
     take?: number;
     cursor?: Prisma.ProjectWhereUniqueInput;
     where?: Prisma.ProjectWhereInput;
     orderBy?: Prisma.ProjectOrderByInput;
+    include?: Prisma.ProjectInclude;
   }): Promise<Project[]> {
     return this.prisma.project.findMany({
       skip,
@@ -205,6 +206,7 @@ export class ProjectService {
           },
         },
         files: true,
+        ...include,
       },
     });
   }
