@@ -15,7 +15,9 @@ export class StudentService {
       where,
       include: {
         applications: true,
-        user: true,
+        user: {
+          select: { id: true, type: true, createdAt: true, updatedAt: true, deletedAt: true },
+        },
       },
     });
 

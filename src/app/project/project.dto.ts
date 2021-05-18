@@ -98,6 +98,12 @@ export class UpdateProjectDto {
   @IsNotEmpty()
   @IsString()
   description?: string | undefined;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
+  files?: FileDto[];
 }
 
 export class ProjectResponseDto {
@@ -117,9 +123,21 @@ export class ProjectResponseDto {
    * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
    */
   professorAdvisorId: string;
+
+  files?: string[];
   @ApiProperty({ enum: ProjectStatus })
   status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+}
+
+export class ProjectAgreementPdfResponseDto {
+  /**
+   * Url of the file on the cloud
+   * @example 'www.url.com/file'
+   */
+  @IsNotEmpty()
+  @IsString()
+  fileUrl: string;
 }

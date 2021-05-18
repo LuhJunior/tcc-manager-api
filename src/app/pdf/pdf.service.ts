@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as PDFDocument  from 'pdfkit';
 
-function createPdfLetterBuffer(professorName: string, professorEmail: string, projectTitle: string, studentName: string): Promise<Buffer> {
+function createPdfLetterBuffer(professorName: string, professorEmail: string, projectTitle: string, studentName: string, day: number, month: string, year: number): Promise<Buffer> {
   return new Promise ((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers = [];
@@ -26,7 +26,7 @@ function createPdfLetterBuffer(professorName: string, professorEmail: string, pr
 
     doc
       .fontSize(10)
-      .text('Salvador, xx de xxxxx de 20xx.', { align: 'center' });
+      .text(`Salvador, ${day} de ${month} de ${year}.`, { align: 'center' });
 
     doc.moveDown(4);
 
@@ -46,8 +46,12 @@ function createPdfLetterBuffer(professorName: string, professorEmail: string, pr
 
 @Injectable()
 export class PdfService {
-  async createPdf() {
-
-    return createPdfLetterBuffer('Ana', 'ana@uneb.com.br', 'A project', 'Yan');
+  async createPdf(professorName: string, professorEmail: string, projectTitle: string, studentName: string) {
+    const date = new Date();
+    const dateGmtMinusThree = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours() - 3, date.getUTCMinutes(), date.getUTCSeconds()));
+    const day = dateGmtMinusThree.getUTCDate();
+    const month = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'][dateGmtMinusThree.getMonth()];
+    const year = dateGmtMinusThree.getUTCFullYear();
+    return createPdfLetterBuffer(professorName, professorEmail, projectTitle, studentName, day, month, year);
   }
 }

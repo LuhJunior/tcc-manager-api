@@ -6,7 +6,7 @@ import { RolesGuard } from '../../guards/roles.guard';
 import { RequestWithUser } from '../auth/auth.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../professor/professor.dto';
-import { UserService } from '../user/user.service';
+// import { UserService } from '../user/user.service';
 import { CreateStudentDto, StudentResponseDto } from './student.dto';
 import { StudentService } from './student.service';
 
@@ -15,28 +15,26 @@ import { StudentService } from './student.service';
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
-    private readonly userService: UserService,
+    // private readonly userService: UserService,
   ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
   @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
   ): Promise<StudentResponseDto> {
 
-    await this.userService.createUser({
-      login: studentData.enrollmentCode,
-      password: studentData.enrollmentCode.substr(0, 6),
-      type: 'STUDENT',
-    });
+    // await this.userService.createUser({
+    //   login: studentData.enrollmentCode,
+    //   password: studentData.enrollmentCode.substr(0, 6),
+    //   type: 'STUDENT',
+    // });
 
     return this.studentService.createStudent({
       ...studentData,
-      user: {
-        connect: { login: studentData.enrollmentCode },
-      },
+      // user: {
+      //   connect: { login: studentData.enrollmentCode },
+      // },
     });
   }
 
@@ -47,7 +45,7 @@ export class StudentController {
   @ApiNotFoundResponse({ description: 'Student not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {
     const student = await this.studentService.student({ userId: req.user.id });
-    console.log(req.user)
+
     if (!student) throw new NotFoundException('Student not found.');
 
     return student;
