@@ -124,7 +124,7 @@ export class ProjectResponseDto {
    */
   professorAdvisorId: string;
 
-  files?: string[];
+  files?: FileDto[];
   @ApiProperty({ enum: ProjectStatus })
   status: ProjectStatus;
   createdAt: Date;
