@@ -8,6 +8,8 @@ import { UserModule } from '../user/user.module';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthController } from './auth.controller';
+import { ProfessorService } from '../professor/professor.service';
+import { StudentService } from '../student/student.service';
 
 @Module({
   imports: [
@@ -19,7 +21,7 @@ import { AuthController } from './auth.controller';
     }),
   ],
   controllers: [AuthController],
-  providers: [PrismaService, AuthService, LocalStrategy, JwtStrategy, UserService],
+  providers: [PrismaService, AuthService, LocalStrategy, JwtStrategy, UserService, StudentService, ProfessorService],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

@@ -19,6 +19,8 @@ export class StudentController {
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
@@ -36,6 +38,33 @@ export class StudentController {
         connect: { login: studentData.enrollmentCode },
       },
     });
+  }
+
+  @Post(':id/accept')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiBearerAuth()
+  async accepetStudentRegister(
+    @Param() { id }: FindByIdParam,
+  ): Promise<StudentResponseDto> {
+    const student = await this.studentService.student({ id });
+
+    if (!student) throw new NotFoundException('Student not found.');
+
+    const user = await this.userService.createUser({
+      login: student.enrollmentCode,
+      password: student.enrollmentCode.substr(0, 6),
+      type: 'STUDENT',
+      student: {
+        connect: {
+          id,
+        },
+      }
+    });
+
+    student.userId = user.id;
+
+    return student;
   }
 
   @Get('me')

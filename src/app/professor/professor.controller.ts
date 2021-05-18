@@ -32,7 +32,6 @@ import { Roles } from '../../decorators/roles.decorator';
 import { Role } from '../../enums/role.enum';
 import { RolesGuard } from '../../guards/roles.guard';
 
-
 @ApiTags('Professor')
 @Controller()
 export class ProfessorController {
@@ -42,6 +41,8 @@ export class ProfessorController {
   ) {}
 
   @Post('professor/advisor')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
@@ -82,6 +83,34 @@ export class ProfessorController {
         connect: { login: professorData.enrollmentCode },
       },
     });
+  }
+
+  @Post('professor/:id/advisor/accept')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  // @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
+  async acceptProfessorAdvisor(
+    @Param() { id }: FindByIdParam,
+  ): Promise<ProfessorResponseDto> {
+    const professor = await this.professorService.professor({ id });
+
+    if (!professor) throw new NotFoundException('Professor not found.');
+
+    const user = await this.userService.createUser({
+      login: professor.enrollmentCode,
+      password: professor.enrollmentCode.substr(0, 6),
+      type: 'PROFESSOR',
+      professor: {
+        connect: {
+          id,
+        }
+      },
+    });
+
+    professor.userId = user.id;
+
+    return professor;
   }
 
   @Post('professor/tcc')
