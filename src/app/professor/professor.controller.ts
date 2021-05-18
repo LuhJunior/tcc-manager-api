@@ -67,20 +67,20 @@ export class ProfessorController {
       return this.professorService.professor({ id: professorData.professorId });
     }
 
-    // await this.userService.createUser({
-    //   login: professorData.enrollmentCode,
-    //   password: professorData.enrollmentCode.substr(0, 6),
-    //   type: 'PROFESSOR',
-    // });
+    await this.userService.createUser({
+      login: professorData.enrollmentCode,
+      password: professorData.enrollmentCode.substr(0, 6),
+      type: 'PROFESSOR',
+    });
 
     return this.professorService.createProfessor({
       ...professorData,
       professorAdvisor: {
         create: { },
       },
-      // user: {
-      //   connect: { login: professorData.enrollmentCode },
-      // },
+      user: {
+        connect: { login: professorData.enrollmentCode },
+      },
     });
   }
 
