@@ -221,10 +221,12 @@ export class ProjectService {
       return null;
     }
 
-
     return this.prisma.project.update({
       data,
       where,
+      include: {
+        files: true,
+      },
     });
   }
 
