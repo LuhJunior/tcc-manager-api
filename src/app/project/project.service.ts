@@ -213,11 +213,14 @@ export class ProjectService {
     where: Prisma.ProjectWhereUniqueInput & { professorAdvisorId?: string };
     data: Prisma.ProjectUpdateInput;
   }): Promise<Project | null> {
+    const { professorAdvisorId } = where;
+    delete where.professorAdvisorId;
     const project = await this.prisma.project.findUnique({ where });
 
-    if (!project || project.deletedAt || (where.professorAdvisorId && project.professorAdvisorId !== where.professorAdvisorId)) {
+    if (!project || project.deletedAt || (professorAdvisorId && project.professorAdvisorId !== professorAdvisorId)) {
       return null;
     }
+
 
     return this.prisma.project.update({
       data,
