@@ -42,8 +42,6 @@ export class ProfessorController {
   ) {}
 
   @Post('professor/advisor')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
@@ -69,20 +67,20 @@ export class ProfessorController {
       return this.professorService.professor({ id: professorData.professorId });
     }
 
-    await this.userService.createUser({
-      login: professorData.enrollmentCode,
-      password: professorData.enrollmentCode.substr(0, 6),
-      type: 'PROFESSOR',
-    });
+    // await this.userService.createUser({
+    //   login: professorData.enrollmentCode,
+    //   password: professorData.enrollmentCode.substr(0, 6),
+    //   type: 'PROFESSOR',
+    // });
 
     return this.professorService.createProfessor({
       ...professorData,
       professorAdvisor: {
         create: { },
       },
-      user: {
-        connect: { login: professorData.enrollmentCode },
-      },
+      // user: {
+      //   connect: { login: professorData.enrollmentCode },
+      // },
     });
   }
 

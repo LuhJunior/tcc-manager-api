@@ -2,8 +2,8 @@ import { Controller, Post, UploadedFiles, UseGuards, UseInterceptors } from "@ne
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags, ApiBody, ApiConsumes } from "@nestjs/swagger";
 import { DataUploadService } from "./data.upload.service";
-import { Roles } from "src/decorators/roles.decorator";
-import { Role } from "src/enums/role.enum";
+import { Roles } from "../../decorators/roles.decorator";
+import { Role } from "../../enums/role.enum";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
 @ApiTags('Data Upload')

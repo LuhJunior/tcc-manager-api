@@ -13,7 +13,7 @@ export class FirebaseService implements IDataUploadService {
     const bucket = admin.storage().bucket(config.bucketName);
 
     return Promise.all(files.map(async ({ filename, buffer }) => {
-      const gcsname = new Date().toISOString() + filename;
+      const gcsname = `${new Date().toISOString()}${filename.split('.')[0]}/${filename}`;
 
       try {
         await bucket.file(gcsname).save(buffer);
@@ -40,7 +40,7 @@ export class LocalStorageService implements IDataUploadService {
 
         return fs.promises.realpath(path);
       } catch (e) {
-        Logger.error(e)
+        Logger.error(e);
         return null;
       }
     }));

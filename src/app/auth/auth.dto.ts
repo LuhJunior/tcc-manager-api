@@ -1,3 +1,4 @@
+import { UserType } from ".prisma/client";
 import { IsNotEmpty, IsString } from "class-validator";
 
 export class LoginDtoRequest {
@@ -12,4 +13,5 @@ export class LoginDtoRequest {
 
 export class LoginDtoResponse {
   accessToken: string;
+  userType: UserType;
 }
