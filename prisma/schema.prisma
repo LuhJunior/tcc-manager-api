@@ -44,8 +44,8 @@ model Professor {
   enrollmentCode   String             @unique                                       @map(name: "enrollment_code")
   email            String
   phoneNumber      String             @db.VarChar(15)                               @map(name: "phone_number")
-  userId           String?             @unique                                       @map(name: "user_id")
-  user             User?              @relation(fields: [userId], references: [id])
+  userId           String             @unique                                       @map(name: "user_id")
+  user             User               @relation(fields: [userId], references: [id])
   professorTcc     ProfessorTcc?
   professorAdvisor ProfessorAdvisor?
   files            File[]
@@ -263,8 +263,8 @@ model Student {
   enrollmentCode   String           @unique                                       @map(name: "enrollment_code")
   email            String
   phoneNumber      String           @db.VarChar(15)                               @map(name: "phone_number")
-  userId           String?           @unique                                       @map(name: "user_id")
-  user             User?            @relation(fields: [userId], references: [id])
+  userId           String           @unique                                       @map(name: "user_id")
+  user             User             @relation(fields: [userId], references: [id])
   applications     Application[]
   posts            Post[]
   classes          StudentOnClass[]
@@ -324,4 +324,26 @@ model User {
   deletedAt DateTime?                                                   @map(name: "deleted_at")
 
   @@map(name: "user")
+}
+
+enum RegisterType {
+  PROFESSOR @map(name: "professor")
+  STUDENT @map(name: "student")
+
+  @@map(name: "register_type")
+}
+
+model Register {
+  id             String       @id @default(uuid())
+  name           String
+  enrollmentCode String                             @map(name: "enrollment_code")
+  email          String
+  phoneNumber    String       @db.VarChar(15)       @map(name: "phone_number")
+  type           RegisterType @default(STUDENT)
+
+  createdAt      DateTime     @default(now())       @map(name: "created_at")
+  updatedAt      DateTime     @updatedAt            @map(name: "updated_at")
+  deletedAt      DateTime?                          @map(name: "deleted_at")
+
+  @@map(name: "register")
 }

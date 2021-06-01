@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../decorators/roles.decorator';
 import { Role } from '../../enums/role.enum';
@@ -18,9 +18,9 @@ export class StudentController {
     private readonly userService: UserService,
   ) {}
 
-  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
+  @Post()
   @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
@@ -40,36 +40,9 @@ export class StudentController {
     });
   }
 
-  @Post(':id/accept')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiBearerAuth()
-  async accepetStudentRegister(
-    @Param() { id }: FindByIdParam,
-  ): Promise<StudentResponseDto> {
-    const student = await this.studentService.student({ id });
-
-    if (!student) throw new NotFoundException('Student not found.');
-
-    const user = await this.userService.createUser({
-      login: student.enrollmentCode,
-      password: student.enrollmentCode.substr(0, 6),
-      type: 'STUDENT',
-      student: {
-        connect: {
-          id,
-        },
-      }
-    });
-
-    student.userId = user.id;
-
-    return student;
-  }
-
-  @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Student)
+  @Get('me')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {

@@ -46,7 +46,7 @@ export class UserController {
 
   @Get('user')
   async findAllUsers(
-    @Param() { skip, take }: FindAllParams,
+    @Query() { skip, take }: FindAllParams,
   ): Promise<UserResponseDto[]> {
     return this.userService.users({ skip, take, orderBy: { createdAt: 'desc' } });
   }

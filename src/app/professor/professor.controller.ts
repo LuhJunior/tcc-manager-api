@@ -86,34 +86,6 @@ export class ProfessorController {
     });
   }
 
-  @Post('professor/:id/advisor/accept')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiNotFoundResponse({ description: 'Professor not found.' })
-  // @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
-  async acceptProfessorAdvisor(
-    @Param() { id }: FindByIdParam,
-  ): Promise<ProfessorResponseDto> {
-    const professor = await this.professorService.professor({ id });
-
-    if (!professor) throw new NotFoundException('Professor not found.');
-
-    const user = await this.userService.createUser({
-      login: professor.enrollmentCode,
-      password: professor.enrollmentCode.substr(0, 6),
-      type: 'PROFESSOR',
-      professor: {
-        connect: {
-          id,
-        }
-      },
-    });
-
-    professor.userId = user.id;
-
-    return professor;
-  }
-
   @Post('professor/tcc')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)

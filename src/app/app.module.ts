@@ -7,13 +7,14 @@ import { MulterModule } from '@nestjs/platform-express';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { StudentModule } from './student/student.module';
+import { RegisterModule } from './register/register.module';
 
 MulterModule.register({
   storage: memoryStorage(),
 });
 
 @Module({
-  imports: [AuthModule, DataUploadModule, ProfessorModule, ProjectModule, UserModule, StudentModule],
+  imports: [AuthModule, DataUploadModule, ProfessorModule, ProjectModule, UserModule, StudentModule, RegisterModule],
   controllers: [],
   providers: [],
 })

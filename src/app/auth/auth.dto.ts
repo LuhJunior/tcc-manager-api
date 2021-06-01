@@ -1,4 +1,4 @@
-import { UserType } from ".prisma/client";
+import { UserType, RegisterType } from ".prisma/client";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsString, MaxLength } from "class-validator";
 
@@ -16,11 +16,6 @@ export class LoginDtoResponse {
   accessToken: string;
   userType: UserType;
 }
-
-export enum RegisterType {
-  PROFESSOR = 'PROFESSOR',
-  STUDENT = 'STUDENT',
-};
 
 export class CreateRegisterDto {
   @IsNotEmpty()
