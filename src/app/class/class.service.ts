@@ -13,7 +13,7 @@ export class ClassService {
   constructor(private prisma: PrismaService) {}
 
   async createClass(data: Prisma.ClassCreateInput): Promise<Class & { semester: Semester }> {
-    return this.prisma.class.create({ data, include: { semester: true } });
+    return this.prisma.class.create({ data, include: { semester: true, professors: true } });
   }
 
   async createProfessorTccOnClass(data: Prisma.ProfessorTccOnClassCreateInput): Promise<ProfessorTccOnClass & { professorTcc: ProfessorTcc; class: Class }> {
