@@ -149,19 +149,6 @@ export class ProfessorController {
     return professor;
   }
 
-  @Get('professor/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiBearerAuth()
-  @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
-    const professor = await this.professorService.professor({ id });
-
-    if (!professor) throw new NotFoundException('Professor not found.');
-
-    return professor;
-  }
-
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
   @Get('professor/enrollmentCode/:enrollmentCode')
@@ -183,6 +170,55 @@ export class ProfessorController {
     @Query() { skip, take } : FindAllParams,
   ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Get('professor/create/:id/class')
+  @ApiBearerAuth()
+  async findAllProfessorsTcc(
+    @Param() { id }: FindByIdParam,
+    @Query() { skip, take } : FindAllParams,
+  ): Promise<ProfessorResponseDto[]> {
+    return this.professorService.professors({
+      skip,
+      take,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      where: {
+        AND: [
+          {
+            NOT: {
+              professorTcc: null,
+            },
+          },
+          {
+            professorTcc: {
+              classes: {
+                none: {
+                  classId: id,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+
+  @Get('professor/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
+    const professor = await this.professorService.professor({ id });
+
+    if (!professor) throw new NotFoundException('Professor not found.');
+
+    return professor;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

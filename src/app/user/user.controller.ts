@@ -8,7 +8,9 @@ import {
   Delete,
   Query,
   NotFoundException,
+  ConflictException,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
@@ -18,21 +20,39 @@ import { Roles } from 'src/decorators/roles.decorator';
 import { Role } from 'src/enums/role.enum';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ProfessorService } from '../professor/professor.service';
+import { RequestWithUser } from '../auth/auth.interface';
 
 @ApiTags('User')
 @Controller()
 export class UserController {
   constructor(
     private readonly userService: UserService,
+    private readonly professorService: ProfessorService,
   ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Post('user')
   async createUser(
-    @Body() { login, password, type }: CreateUserDto,
+    @Body() { login, password, type, ...professor }: CreateUserDto,
   ): Promise<UserResponseDto> {
-    return this.userService.createUser({ login, password, type });
+    if (await this.userService.checkUser({ login }) || (professor.enrollmentCode && await this.professorService.professor({ enrollmentCode: professor.enrollmentCode }))) {
+      throw new ConflictException('Login or enrrolment code was already used.');
+    }
+
+    return this.userService.createUser({
+      login,
+      password,
+      type,
+      professor: type === 'PROFESSOR' ? {
+        create: {
+          ...professor,
+          professorTcc: { create: { } },
+          professorAdvisor: { create: { } },
+        },
+      } : undefined,
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -56,8 +76,23 @@ export class UserController {
   @Get('user')
   async findAllUsers(
     @Query() { skip, take }: FindAllParams,
+    @Request() req: RequestWithUser,
   ): Promise<UserResponseDto[]> {
-    return this.userService.users({ skip, take, orderBy: { createdAt: 'desc' } });
+    return this.userService.users({
+      skip,
+      take,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      where: {
+        id: {
+          not: req.user.id,
+        },
+        type: {
+          not: 'ADMIN',
+        },
+      },
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
