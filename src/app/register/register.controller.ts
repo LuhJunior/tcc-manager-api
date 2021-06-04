@@ -31,7 +31,7 @@ export class RegisterController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Post(':id/accept_professor')
+  @Post(':id/professor/accept')
   @ApiNotFoundResponse({ description: 'Register not found.' })
   @ApiBadRequestResponse({ description: 'Professor already registered' })
   async createProfessorUser(
@@ -67,7 +67,7 @@ export class RegisterController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.ProfessorTcc)
-  @Post(':id/accept_student')
+  @Post(':id/student/accept')
   @ApiNotFoundResponse({ description: 'Register not found.' })
   @ApiBadRequestResponse({ description: 'Student already registered' })
   async createStudentUser(
@@ -101,22 +101,6 @@ export class RegisterController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @Get(':id')
-  @ApiNotFoundResponse({ description: 'Register not found.' })
-  async findUserById(
-    @Param() { id }: FindByIdParam
-  ): Promise<RegisterResponseDto> {
-    const register = await this.registerService.register({ id });
-
-    if (!register) {
-      throw new NotFoundException('Register not found.');
-    }
-
-    return register;
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Get()
   async findAllRegisters(
@@ -144,8 +128,69 @@ export class RegisterController {
     return this.registerService.registers({ skip, take, where: { type: 'STUDENT' }, orderBy: { createdAt: 'desc' } });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard, )
+  @Roles(Role.Admin, Role.Secretary)
+  @Get(':id')
+  @ApiNotFoundResponse({ description: 'Register not found.' })
+  async findUserById(
+    @Param() { id }: FindByIdParam
+  ): Promise<RegisterResponseDto> {
+    const register = await this.registerService.register({ id });
+
+    if (!register) {
+      throw new NotFoundException('Register not found.');
+    }
+
+    return register;
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
+  @Delete(':id/professor/reject')
+  @ApiNotFoundResponse({ description: 'Register not found.' })
+  async deleteProfessorRegister(
+    @Param() { id } : FindByIdParam,
+  ): Promise<RegisterResponseDto> {
+    const register = await this.registerService.register({ id });
+
+    if (!register || register.type !== 'PROFESSOR') {
+      throw new NotFoundException('Register not found.');
+    }
+
+    const deletedRegister = await this.registerService.deleteRegister({ id });
+
+    if (!deletedRegister) {
+      throw new NotFoundException('Register not found.');
+    }
+
+    return deletedRegister;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.ProfessorTcc)
+  @Delete(':id/student/reject')
+  @ApiNotFoundResponse({ description: 'Register not found.' })
+  @ApiBadRequestResponse({ description: 'Student already registered' })
+  async deleteStudentRegister(
+    @Param() { id } : FindByIdParam,
+  ): Promise<RegisterResponseDto> {
+    const register = await this.registerService.register({ id });
+
+    if (!register || register.type !== 'STUDENT') {
+      throw new NotFoundException('Register not found.');
+    }
+
+    const deletedRegister = await this.registerService.deleteRegister({ id });
+
+    if (!deletedRegister) {
+      throw new NotFoundException('Register not found.');
+    }
+
+    return deletedRegister;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Delete(':id')
   @ApiNotFoundResponse({ description: 'Register not found.' })
   async deleteRegister(

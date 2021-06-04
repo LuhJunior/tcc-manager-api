@@ -20,13 +20,13 @@ export class AuthController {
   @Post('login')
   async login(@Request() req: RequestWithUser, @Body() _: LoginDtoRequest): Promise<LoginDtoResponse> {
     const { accessToken } = await this.authService.login(req.user);
-    return { accessToken, userType: req.user.type };
+    return { accessToken, userType: req.user.type, roles: req.user.roles };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth()
-  getProfile(@Request() req: RequestWithUser): UserResponseDto {
+  getProfile(@Request() req: RequestWithUser): UserResponseDto & { roles: string[] } {
     return req.user;
   }
 

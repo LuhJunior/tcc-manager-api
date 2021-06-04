@@ -6,15 +6,18 @@ import {
   Body,
   Patch,
   Delete,
-  HttpException,
-  HttpStatus,
   Query,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdatePasswordDto, UserResponseDto } from './user.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
+import { Roles } from 'src/decorators/roles.decorator';
+import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('User')
 @Controller()
@@ -23,6 +26,8 @@ export class UserController {
     private readonly userService: UserService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Post('user')
   async createUser(
     @Body() { login, password, type }: CreateUserDto,
@@ -30,6 +35,8 @@ export class UserController {
     return this.userService.createUser({ login, password, type });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Get('user/:id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   async findUserById(
@@ -44,6 +51,8 @@ export class UserController {
     return user;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Get('user')
   async findAllUsers(
     @Query() { skip, take }: FindAllParams,
@@ -51,6 +60,8 @@ export class UserController {
     return this.userService.users({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Patch('user/:id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   async updateUserPassword(
@@ -60,12 +71,14 @@ export class UserController {
     const user = await this.userService.updateUser({ id }, password);
 
     if (!user) {
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('User not found.');
     }
 
     return user;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Delete('user/:id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   async deleteUser(
@@ -74,7 +87,7 @@ export class UserController {
     const user = await this.userService.deleteUser({ id });
 
     if (!user) {
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('User not found.',);
     }
 
     return user;

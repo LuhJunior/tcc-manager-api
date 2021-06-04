@@ -15,6 +15,7 @@ export class LoginDtoRequest {
 export class LoginDtoResponse {
   accessToken: string;
   userType: UserType;
+  roles: string[];
 }
 
 export class CreateRegisterDto {

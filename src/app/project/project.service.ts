@@ -17,6 +17,13 @@ export class ProjectService {
         ...data,
         status: ProjectStatus.ACTIVE,
       },
+      include: {
+        professorAdvisor: {
+          include: {
+            professor: true,
+          },
+        },
+      },
     });
   }
 
@@ -227,6 +234,16 @@ export class ProjectService {
       data,
       where,
       include: {
+        professorAdvisor: {
+          include: {
+            professor: true,
+          },
+        },
+        applications: {
+          where: {
+            deletedAt: null,
+          },
+        },
         files: true,
       },
     });

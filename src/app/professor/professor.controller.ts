@@ -126,6 +126,9 @@ export class ProfessorController {
       professorTcc: {
         create: { },
       },
+      professorAdvisor: {
+        create: { },
+      },
       user: {
         connect: { login: professorData.enrollmentCode },
       },

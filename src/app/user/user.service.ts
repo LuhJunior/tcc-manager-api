@@ -48,11 +48,14 @@ export class UserService {
   async updateUser(where: Prisma.UserWhereUniqueInput, password: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where });
 
+    console.log('PORRA')
+    
     if (!user || user.deletedAt) {
       return null;
     }
+    console.log('PORRA')
 
-    return this.prisma.user.update({ data: { password: await bcrypt.hash(password, 123456) }, where });
+    return this.prisma.user.update({ data: { password: await bcrypt.hash(password, 10) }, where });
   }
 
   async deleteUser(where: Prisma.UserWhereUniqueInput) {
