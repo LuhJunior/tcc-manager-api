@@ -32,7 +32,6 @@ import { Roles } from '../../decorators/roles.decorator';
 import { Role } from '../../enums/role.enum';
 import { RolesGuard } from '../../guards/roles.guard';
 
-
 @ApiTags('Professor')
 @Controller()
 export class ProfessorController {
@@ -42,6 +41,9 @@ export class ProfessorController {
   ) {}
 
   @Post('professor/advisor')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
@@ -67,20 +69,20 @@ export class ProfessorController {
       return this.professorService.professor({ id: professorData.professorId });
     }
 
-    // await this.userService.createUser({
-    //   login: professorData.enrollmentCode,
-    //   password: professorData.enrollmentCode.substr(0, 6),
-    //   type: 'PROFESSOR',
-    // });
+    await this.userService.createUser({
+      login: professorData.enrollmentCode,
+      password: professorData.enrollmentCode.substr(0, 6),
+      type: 'PROFESSOR',
+    });
 
     return this.professorService.createProfessor({
       ...professorData,
       professorAdvisor: {
         create: { },
       },
-      // user: {
-      //   connect: { login: professorData.enrollmentCode },
-      // },
+      user: {
+        connect: { login: professorData.enrollmentCode },
+      },
     });
   }
 
@@ -124,6 +126,9 @@ export class ProfessorController {
       professorTcc: {
         create: { },
       },
+      professorAdvisor: {
+        create: { },
+      },
       user: {
         connect: { login: professorData.enrollmentCode },
       },
@@ -138,19 +143,6 @@ export class ProfessorController {
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ userId: req.user.id });
-
-    if (!professor) throw new NotFoundException('Professor not found.');
-
-    return professor;
-  }
-
-  @Get('professor/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiBearerAuth()
-  @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
-    const professor = await this.professorService.professor({ id });
 
     if (!professor) throw new NotFoundException('Professor not found.');
 
@@ -178,6 +170,55 @@ export class ProfessorController {
     @Query() { skip, take } : FindAllParams,
   ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Get('professor/create/:id/class')
+  @ApiBearerAuth()
+  async findAllProfessorsTcc(
+    @Param() { id }: FindByIdParam,
+    @Query() { skip, take } : FindAllParams,
+  ): Promise<ProfessorResponseDto[]> {
+    return this.professorService.professors({
+      skip,
+      take,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      where: {
+        AND: [
+          {
+            NOT: {
+              professorTcc: null,
+            },
+          },
+          {
+            professorTcc: {
+              classes: {
+                none: {
+                  classId: id,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+
+  @Get('professor/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
+    const professor = await this.professorService.professor({ id });
+
+    if (!professor) throw new NotFoundException('Professor not found.');
+
+    return professor;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -5,26 +5,35 @@ import { AuthService } from './auth.service';
 import { RequestWithUser } from './auth.interface';
 import { UserResponseDto } from '../user/user.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LoginDtoRequest, LoginDtoResponse } from './auth.dto';
+import { CreateRegisterDto, LoginDtoRequest, LoginDtoResponse } from './auth.dto';
+import { RegisterService } from '../register/register.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
-    private authService: AuthService,
+    private readonly authService: AuthService,
+    private readonly registerService: RegisterService,
   ) {}
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Request() req: RequestWithUser, @Body() _: LoginDtoRequest): Promise<LoginDtoResponse> {
     const { accessToken } = await this.authService.login(req.user);
-    return { accessToken, userType: req.user.type };
+    return { accessToken, userType: req.user.type, roles: req.user.roles };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth()
-  getProfile(@Request() req: RequestWithUser): UserResponseDto {
+  getProfile(@Request() req: RequestWithUser): UserResponseDto & { roles: string[] } {
     return req.user;
+  }
+
+  @Post('register')
+  async acceptProfessorAdvisor(
+    @Body() register: CreateRegisterDto,
+  ): Promise<CreateRegisterDto> {
+    return this.registerService.createRegister(register);
   }
 }

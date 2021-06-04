@@ -12,6 +12,7 @@ function getRoles(type: UserType): Role[] {
   if (type === 'PROFESSOR') return [Role.Professor];
   if (type === 'SECRETARY') return [Role.Secretary];
   if (type === 'STUDENT') return [Role.Student];
+  return [];
 }
 
 @Injectable()
@@ -35,6 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (user.professor?.professorAdvisor) roles.push(Role.ProfessorAdvisor);
     if (user.professor?.professorTcc) roles.push(Role.ProfessorTcc);
+
     return { ...user, roles };
   }
 }

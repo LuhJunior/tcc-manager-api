@@ -445,8 +445,8 @@ describe('professor.e2e.spec.ts', () => {
         .auth(token, { type: 'bearer' })
         .send(uProfessor);
 
-      expect(res.status).toBe(401);
-      // expect(res.body).toEqual(expect.objectContaining(uProfessor));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(expect.objectContaining(uProfessor));
     });
 
     it('If name is not a string, should return a status 400', async () => {
@@ -474,14 +474,14 @@ describe('professor.e2e.spec.ts', () => {
         .auth(token, { type: 'bearer' })
         .send(uProfessor);
 
-      expect(res.status).toBe(401);
-      // expect(res.body).toEqual({
-      //   statusCode: 400,
-      //   message: [
-      //     'name must be a string'
-      //   ],
-      //   error: 'Bad Request'
-      // });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        statusCode: 400,
+        message: [
+          'name must be a string'
+        ],
+        error: 'Bad Request'
+      });
     });
 
     // it('If the professor with given id not exist, should return a 404 status', async () => {

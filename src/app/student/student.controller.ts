@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../decorators/roles.decorator';
 import { Role } from '../../enums/role.enum';
@@ -6,7 +6,7 @@ import { RolesGuard } from '../../guards/roles.guard';
 import { RequestWithUser } from '../auth/auth.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../professor/professor.dto';
-// import { UserService } from '../user/user.service';
+import { UserService } from '../user/user.service';
 import { CreateStudentDto, StudentResponseDto } from './student.dto';
 import { StudentService } from './student.service';
 
@@ -15,32 +15,34 @@ import { StudentService } from './student.service';
 export class StudentController {
   constructor(
     private readonly studentService: StudentService,
-    // private readonly userService: UserService,
+    private readonly userService: UserService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   @Post()
   @ApiBearerAuth()
   async createStudent(
     @Body() studentData: CreateStudentDto,
   ): Promise<StudentResponseDto> {
 
-    // await this.userService.createUser({
-    //   login: studentData.enrollmentCode,
-    //   password: studentData.enrollmentCode.substr(0, 6),
-    //   type: 'STUDENT',
-    // });
+    await this.userService.createUser({
+      login: studentData.enrollmentCode,
+      password: studentData.enrollmentCode.substr(0, 6),
+      type: 'STUDENT',
+    });
 
     return this.studentService.createStudent({
       ...studentData,
-      // user: {
-      //   connect: { login: studentData.enrollmentCode },
-      // },
+      user: {
+        connect: { login: studentData.enrollmentCode },
+      },
     });
   }
 
-  @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Student)
+  @Get('me')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {
