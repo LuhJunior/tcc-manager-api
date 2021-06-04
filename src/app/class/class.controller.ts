@@ -23,9 +23,9 @@ import {
   ProfessorTccOnClassResponseDto,
 } from './class.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
-import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/enums/role.enum';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
+import { Role } from '../../enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequestWithUser } from '../auth/auth.interface';
 import { ClassService } from './class.service';

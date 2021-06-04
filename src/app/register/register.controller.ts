@@ -16,10 +16,10 @@ import { UserService } from '../user/user.service';
 import { FilterByType, RegisterResponseDto } from './register.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { UserResponseDto } from '../user/user.dto';
-import { Roles } from 'src/decorators/roles.decorator';
+import { Roles } from '../../decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Role } from '../../enums/role.enum';
 
 @ApiTags('Register')
 @Controller('register')

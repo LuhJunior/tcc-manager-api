@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserType } from '@prisma/client';
-import { Role } from 'src/enums/role.enum';
+import { Role } from '../../enums/role.enum';
 import { UserRequest } from './auth.interface';
 
 function getRoles(type: UserType): Role[] {
