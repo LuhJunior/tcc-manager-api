@@ -86,34 +86,6 @@ export class ProfessorController {
     });
   }
 
-  @Post('professor/:id/advisor/accept')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiNotFoundResponse({ description: 'Professor not found.' })
-  // @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
-  async acceptProfessorAdvisor(
-    @Param() { id }: FindByIdParam,
-  ): Promise<ProfessorResponseDto> {
-    const professor = await this.professorService.professor({ id });
-
-    if (!professor) throw new NotFoundException('Professor not found.');
-
-    const user = await this.userService.createUser({
-      login: professor.enrollmentCode,
-      password: professor.enrollmentCode.substr(0, 6),
-      type: 'PROFESSOR',
-      professor: {
-        connect: {
-          id,
-        }
-      },
-    });
-
-    professor.userId = user.id;
-
-    return professor;
-  }
-
   @Post('professor/tcc')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
@@ -154,6 +126,9 @@ export class ProfessorController {
       professorTcc: {
         create: { },
       },
+      professorAdvisor: {
+        create: { },
+      },
       user: {
         connect: { login: professorData.enrollmentCode },
       },
@@ -168,19 +143,6 @@ export class ProfessorController {
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
     const professor = await this.professorService.professor({ userId: req.user.id });
-
-    if (!professor) throw new NotFoundException('Professor not found.');
-
-    return professor;
-  }
-
-  @Get('professor/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @ApiBearerAuth()
-  @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
-    const professor = await this.professorService.professor({ id });
 
     if (!professor) throw new NotFoundException('Professor not found.');
 
@@ -208,6 +170,55 @@ export class ProfessorController {
     @Query() { skip, take } : FindAllParams,
   ): Promise<ProfessorResponseDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Get('professor/create/:id/class')
+  @ApiBearerAuth()
+  async findAllProfessorsTcc(
+    @Param() { id }: FindByIdParam,
+    @Query() { skip, take } : FindAllParams,
+  ): Promise<ProfessorResponseDto[]> {
+    return this.professorService.professors({
+      skip,
+      take,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      where: {
+        AND: [
+          {
+            NOT: {
+              professorTcc: null,
+            },
+          },
+          {
+            professorTcc: {
+              classes: {
+                none: {
+                  classId: id,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+
+  @Get('professor/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Professor not found.' })
+  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
+    const professor = await this.professorService.professor({ id });
+
+    if (!professor) throw new NotFoundException('Professor not found.');
+
+    return professor;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

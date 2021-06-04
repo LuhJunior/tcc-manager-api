@@ -11,7 +11,21 @@ export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({ data: { ...data, password: await bcrypt.hash(data.password, 10) } });
+    return this.prisma.user.create({
+      data: {
+        ...data,
+        password: await bcrypt.hash(data.password, 10),
+      },
+      include: {
+        professor: {
+          include: {
+            professorAdvisor: true,
+            professorTcc: true,
+          },
+        },
+        student: true,
+      },
+    });
   }
 
   async user(where: Prisma.UserWhereUniqueInput) {
@@ -35,6 +49,10 @@ export class UserService {
     return user;
   }
 
+  async checkUser(where: Prisma.UserWhereUniqueInput) {
+    return await this.prisma.user.findUnique({ where }) !== null;
+  }
+
   async users({ skip, take, cursor, where, orderBy }: {
     skip?: number;
     take?: number;
@@ -42,7 +60,25 @@ export class UserService {
     where?: Prisma.UserWhereInput;
     orderBy?: Prisma.UserOrderByInput;
   }): Promise<User[]> {
-    return this.prisma.user.findMany({ skip, take, cursor, where: { ...where, deletedAt: null, }, orderBy });
+    return this.prisma.user.findMany({
+      skip,
+      take,
+      cursor,
+      where: {
+        ...where,
+        deletedAt: null,
+      },
+      orderBy,
+      include: {
+        professor: {
+          include: {
+            professorAdvisor: true,
+            professorTcc: true,
+          },
+        },
+        student: true,
+      },
+    });
   }
 
   async updateUser(where: Prisma.UserWhereUniqueInput, password: string): Promise<User | null> {
@@ -52,7 +88,21 @@ export class UserService {
       return null;
     }
 
-    return this.prisma.user.update({ data: { password: await bcrypt.hash(password, 123456) }, where });
+    return this.prisma.user.update({
+      data: {
+        password: await bcrypt.hash(password, 10),
+      },
+      where,
+      include: {
+        professor: {
+          include: {
+            professorAdvisor: true,
+            professorTcc: true,
+          },
+        },
+        student: true,
+      },
+    });
   }
 
   async deleteUser(where: Prisma.UserWhereUniqueInput) {
