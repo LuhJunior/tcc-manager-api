@@ -3,8 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   Class,
   Semester,
-  ProfessorTccOnClass,
-  ProfessorTcc,
   Prisma,
 } from '@prisma/client';
 
@@ -13,15 +11,15 @@ export class ClassService {
   constructor(private prisma: PrismaService) {}
 
   async createClass(data: Prisma.ClassCreateInput): Promise<Class & { semester: Semester }> {
-    return this.prisma.class.create({ data, include: { semester: true, professors: true } });
+    return this.prisma.class.create({ data, include: { semester: true } });
   }
 
-  async createProfessorTccOnClass(data: Prisma.ProfessorTccOnClassCreateInput): Promise<ProfessorTccOnClass & { professorTcc: ProfessorTcc; class: Class }> {
+  async createProfessorTccOnClass(data: Prisma.ProfessorTccOnClassCreateInput) {
     return this.prisma.professorTccOnClass.create({ data, include: { professorTcc: true, class: true } });
   }
 
-  async createSemester(data: Prisma.SemesterCreateInput): Promise<Semester> {
-    return this.prisma.semester.create({ data });
+  async createStudentOnClass(data: Prisma.StudentOnClassCreateInput) {
+    return this.prisma.studentOnClass.create({ data, include: { student: true, class: true } });
   }
 
   async class(where: Prisma.ClassWhereUniqueInput) {
@@ -37,7 +35,11 @@ export class ClassService {
             },
           },
         },
-        students: true,
+        students: {
+          include: {
+            student: true,
+          },
+        },
         semester: true,
       },
     });
@@ -55,6 +57,7 @@ export class ClassService {
       include: {
         class: true,
         professorTcc: true,
+        // exams: true,
       },
     });
 
@@ -81,128 +84,42 @@ export class ClassService {
     return poc;
   }
 
-  async checkClass(where: Prisma.ClassWhereUniqueInput) {
-    return await this.prisma.class.findUnique({ where }) !== null;
-  }
-
-  async semester(where: Prisma.SemesterWhereUniqueInput) {
-    const semester = await this.prisma.semester.findUnique({
+  async studentOnclass(where: Prisma.StudentOnClassWhereUniqueInput) {
+    const soc = await this.prisma.studentOnClass.findUnique({
       where,
       include: {
-        classes: true,
+        class: true,
+        student: true,
+        professorReports: true,
+        // studentReports: true,
       },
     });
 
-    if (!semester || semester.deletedAt) {
+    if (!soc || soc.deletedAt) {
       return null;
     }
 
-    return semester;
+    return soc;
   }
 
-  async checkSemester(where: Prisma.SemesterWhereUniqueInput) {
-    return await this.prisma.semester.findUnique({ where }) !== null;
-  }
-
-  async currentSemester() {
-    return this.prisma.semester.findFirst({
-      where: {
-        OR: [
-          {
-            startPeriod: {
-              gte: new Date(),
-            },
-          },
-          {
-            AND: [
-              {
-                startPeriod: {
-                  lte: new Date(),
-                },
-              },
-              {
-                endPeriod: {
-                  gt: new Date(),
-                },
-              },
-            ],
-          },
-        ],
-        deletedAt: null,
-      },
+  async firstStudentOnclass(where: Prisma.StudentOnClassWhereInput) {
+    const soc = await this.prisma.studentOnClass.findFirst({
+      where,
       include: {
-        classes: true,
-      },
-      orderBy: {
-        startPeriod: 'asc',
+        class: true,
+        student: true,
       },
     });
+
+    if (!soc || soc.deletedAt) {
+      return null;
+    }
+
+    return soc;
   }
 
-  async semesters({ skip, take, cursor, where, orderBy }: {
-    skip?: number;
-    take?: number;
-    cursor?: Prisma.SemesterWhereUniqueInput;
-    where?: Prisma.SemesterWhereInput;
-    orderBy?: Prisma.SemesterOrderByInput;
-  }): Promise<Array<Semester & { classes: Class[] }>> {
-    return this.prisma.semester.findMany({
-      skip,
-      take,
-      cursor,
-      where: {
-        ...where,
-        deletedAt: null,
-      },
-      orderBy,
-      include: {
-        classes: true,
-      },
-    });
-  }
-
-  async conflictPeriodSemester(start: Date, end: Date) {
-    return this.prisma.semester.findFirst({
-      where: {
-        OR: [
-          {
-            AND: [
-              {
-                startPeriod: {
-                  lte: start,
-                },
-              },
-              {
-                endPeriod: {
-                  gte: start,
-                },
-              },
-            ],
-          },
-          {
-            AND: [
-              {
-                startPeriod: {
-                  lte: end,
-                },
-              },
-              {
-                endPeriod: {
-                  gte: end,
-                },
-              },
-            ],
-          },
-        ],
-        deletedAt: null,
-      },
-      include: {
-        classes: true,
-      },
-      orderBy: {
-        startPeriod: 'asc',
-      },
-    });
+  async checkClass(where: Prisma.ClassWhereUniqueInput) {
+    return await this.prisma.class.findUnique({ where }) !== null;
   }
 
   async classes({ skip, take, cursor, where, orderBy }: {
@@ -264,13 +181,23 @@ export class ClassService {
     return this.prisma.class.update({ data: { deletedAt: new Date() }, where, include: { semester: true } });
   }
 
-  async hardDeleteSemester(where: Prisma.SemesterWhereUniqueInput) {
-    const semester = await this.prisma.semester.findUnique({ where });
+  async deleteProfessorTccOnClass(classId: string, professorTccId: string) {
+    const poc = await this.prisma.professorTccOnClass.findFirst({ where: { classId, professorTccId } });
 
-    if (!semester || semester.deletedAt) {
+    if (!poc || poc.deletedAt) {
       return null;
     }
 
-    return this.prisma.semester.delete({ where, include: { classes: true } });
+    return this.prisma.professorTccOnClass.update({ data: { deletedAt: new Date() }, where: { id: poc.id } });
+  }
+
+  async deleteStudentOnClass(classId: string, studentId: string) {
+    const soc = await this.prisma.studentOnClass.findFirst({ where: { classId, studentId } });
+
+    if (!soc || soc.deletedAt) {
+      return null;
+    }
+
+    return this.prisma.studentOnClass.update({ data: { deletedAt: new Date() }, where: { id: soc.id } });
   }
 }

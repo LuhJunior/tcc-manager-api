@@ -7,7 +7,7 @@ import { RequestWithUser } from '../auth/auth.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../professor/professor.dto';
 import { UserService } from '../user/user.service';
-import { CreateStudentDto, StudentResponseDto } from './student.dto';
+import { CreateStudentDto, StudentResponseDto, StudentResponseWithApplicationsDto } from './student.dto';
 import { StudentService } from './student.service';
 
 @ApiTags('Student')
@@ -45,7 +45,7 @@ export class StudentController {
   @Get('me')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
-  async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseDto> {
+  async findAuthProfessor(@Request() req: RequestWithUser): Promise<StudentResponseWithApplicationsDto> {
     const student = await this.studentService.student({ userId: req.user.id });
 
     if (!student) throw new NotFoundException('Student not found.');
@@ -58,7 +58,7 @@ export class StudentController {
   @Get(':id')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
-  async findStudentById(@Param() { id }: FindByIdParam): Promise<StudentResponseDto> {
+  async findStudentById(@Param() { id }: FindByIdParam): Promise<StudentResponseWithApplicationsDto> {
     const student = await this.studentService.student({ id });
 
     if (!student) throw new NotFoundException('Student not found.');
@@ -71,7 +71,7 @@ export class StudentController {
   @Get('enrollmentCode/:enrollmentCode')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Student not found.' })
-  async findStudentByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<StudentResponseDto> {
+  async findStudentByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<StudentResponseWithApplicationsDto> {
     const student = await this.studentService.student({ enrollmentCode });
 
     if (!student) throw new NotFoundException('Student not found.');

@@ -93,6 +93,17 @@ export class CreateStudentDto {
 //   phoneNumber?: string | undefined;
 // }
 
+export class StudentResponseDto {
+  id: string;
+  name: string;
+  enrollmentCode: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+
 class ApplicationDto {
   id: string;
   studentId: string;
@@ -104,14 +115,6 @@ class ApplicationDto {
   deletedAt: Date;
 }
 
-export class StudentResponseDto {
-  id: string;
-  name: string;
-  enrollmentCode: string;
-  email: string;
-  phoneNumber: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
+export class StudentResponseWithApplicationsDto extends StudentResponseDto {
   applications?: ApplicationDto[];
 }

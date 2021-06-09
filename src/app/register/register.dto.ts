@@ -6,7 +6,7 @@ export class FilterByType {
   /**
    * @example 'STUDENT'
    */
-   @ApiProperty({ enum: RegisterType })
+  @ApiProperty({ enum: RegisterType })
   @IsOptional()
   @IsNotEmpty()
   @IsEnum(RegisterType)

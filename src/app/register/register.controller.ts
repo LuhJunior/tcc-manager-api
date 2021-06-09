@@ -3,14 +3,13 @@ import {
   Get,
   Param,
   Post,
-  Body,
   Delete,
   NotFoundException,
   Query,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RegisterService } from './register.service';
 import { UserService } from '../user/user.service';
 import { FilterByType, RegisterResponseDto } from './register.dto';
@@ -32,6 +31,7 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
   @Post(':id/professor/accept')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   @ApiBadRequestResponse({ description: 'Professor already registered' })
   async createProfessorUser(
@@ -68,6 +68,7 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.ProfessorTcc)
   @Post(':id/student/accept')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   @ApiBadRequestResponse({ description: 'Student already registered' })
   async createStudentUser(
@@ -103,16 +104,17 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Get()
+  @ApiBearerAuth()
   async findAllRegisters(
-    @Query() { type } : FilterByType,
-    @Query() { skip, take }: FindAllParams,
+    @Query() { skip, take, type }: FindAllParams & FilterByType,
   ): Promise<RegisterResponseDto[]> {
-    return this.registerService.registers({ skip, take, where: type && { type }, orderBy: { createdAt: 'desc' } });
+    return this.registerService.registers({ skip, take, where: type ? { type } : undefined, orderBy: { createdAt: 'desc' } });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
   @Get('professors')
+  @ApiBearerAuth()
   async findAllProfessorsRegister(
     @Query() { skip, take }: FindAllParams,
   ): Promise<RegisterResponseDto[]> {
@@ -122,6 +124,7 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.ProfessorTcc)
   @Get('students')
+  @ApiBearerAuth()
   async findAllStudentsRegisters(
     @Query() { skip, take }: FindAllParams,
   ): Promise<RegisterResponseDto[]> {
@@ -131,6 +134,7 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard, )
   @Roles(Role.Admin, Role.Secretary)
   @Get(':id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   async findUserById(
     @Param() { id }: FindByIdParam
@@ -146,7 +150,8 @@ export class RegisterController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Delete(':id/professor/reject')
+  @Delete(':id/professor')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   async deleteProfessorRegister(
     @Param() { id } : FindByIdParam,
@@ -168,7 +173,8 @@ export class RegisterController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.ProfessorTcc)
-  @Delete(':id/student/reject')
+  @Delete(':id/student')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   @ApiBadRequestResponse({ description: 'Student already registered' })
   async deleteStudentRegister(
@@ -192,6 +198,7 @@ export class RegisterController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Delete(':id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Register not found.' })
   async deleteRegister(
     @Param() { id }: FindByIdParam
