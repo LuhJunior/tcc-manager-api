@@ -9,6 +9,7 @@ import { FindAllParams, FindByEnrollmentCodeParam, FindByIdParam } from '../prof
 import { UserService } from '../user/user.service';
 import { CreateStudentDto, StudentResponseDto, StudentResponseWithApplicationsDto } from './student.dto';
 import { StudentService } from './student.service';
+import { SemesterService } from '../semester/semester.service';
 
 @ApiTags('Student')
 @Controller('student')
@@ -16,6 +17,7 @@ export class StudentController {
   constructor(
     private readonly studentService: StudentService,
     private readonly userService: UserService,
+    private readonly semesterService: SemesterService,
   ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -87,5 +89,37 @@ export class StudentController {
     @Query() { skip, take } : FindAllParams,
   ): Promise<StudentResponseDto[]> {
     return this.studentService.students({ skip, take, orderBy: { createdAt: 'desc' } });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc)
+  @Get('create/class')
+  @ApiBearerAuth()
+  async findAllNoClassStudents(
+    @Query() { skip, take } : FindAllParams,
+  ): Promise<StudentResponseDto[]> {
+    const cs = await this.semesterService.currentSemester();
+
+    return this.studentService.students({
+      skip,
+      take,
+      where: {
+        classes: {
+          every: {
+            NOT: {
+              OR: {
+                deletedAt: null,
+                class: {
+                  semesterId: cs.id,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 }

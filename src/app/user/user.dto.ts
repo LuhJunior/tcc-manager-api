@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Student, UserType } from '@prisma/client';
-import { IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsString, MaxLength, ValidateIf } from 'class-validator';
-import { ProfessorResponseDto, ProfessorResponseWithAdvisorAndTccDto } from '../professor/professor.dto';
+import { Type } from 'class-transformer';
+import { IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { ProfessorResponseWithAdvisorAndTccDto } from '../professor/professor.dto';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -42,13 +43,39 @@ export class CreateUserDto {
   phoneNumber: string | undefined;
 }
 
-export class UpdatePasswordDto {
+export class UpdateUserQuery {
+  @IsOptional()
+  @IsNotEmpty()
+  @IsEnum(UserType)
+  @ApiProperty({ enum: UserType })
+  type: string | undefined;
+}
+
+export class UpdateUserDto {
   /**
    * @example 'A large complex string'
    */
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
-  password?: string;
+  password: string | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  name: string | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email: string | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(15)
+  phoneNumber: string | undefined;
 }
 
 export class UserResponseDto {

@@ -34,10 +34,16 @@ export class ClassService {
               },
             },
           },
+          where: {
+            deletedAt: null,
+          },
         },
         students: {
           include: {
             student: true,
+          },
+          where: {
+            deletedAt: null,
           },
         },
         semester: true,
@@ -148,6 +154,9 @@ export class ClassService {
               },
             },
           },
+          where: {
+            deletedAt: null,
+          },
         },
       },
     });
@@ -164,8 +173,16 @@ export class ClassService {
       data,
       where,
       include: {
-        professors: true,
-        students: true,
+        professors: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        students: {
+          where: {
+            deletedAt: null,
+          },
+        },
         semester: true,
       },
     });
@@ -182,7 +199,7 @@ export class ClassService {
   }
 
   async deleteProfessorTccOnClass(classId: string, professorTccId: string) {
-    const poc = await this.prisma.professorTccOnClass.findFirst({ where: { classId, professorTccId } });
+    const poc = await this.prisma.professorTccOnClass.findFirst({ where: { classId, professorTccId, deletedAt: null } });
 
     if (!poc || poc.deletedAt) {
       return null;
@@ -192,7 +209,7 @@ export class ClassService {
   }
 
   async deleteStudentOnClass(classId: string, studentId: string) {
-    const soc = await this.prisma.studentOnClass.findFirst({ where: { classId, studentId } });
+    const soc = await this.prisma.studentOnClass.findFirst({ where: { classId, studentId, deletedAt: null } });
 
     if (!soc || soc.deletedAt) {
       return null;

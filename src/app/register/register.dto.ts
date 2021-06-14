@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RegisterType } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+
+export class CreateStudentDto {
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  classId: string;
+}
+
 
 export class FilterByType {
   /**

@@ -6,6 +6,7 @@ import {
   Body,
   Delete,
   Query,
+  Request,
   NotFoundException,
   ConflictException,
   UseGuards,
@@ -20,6 +21,7 @@ import {
   ClassResponseWithSemesterDto,
   CreateStudentOnClassDto,
   StudentOnClassResponseDto,
+  ClassResponseDto,
 } from './class.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { Roles } from '../../decorators/roles.decorator';
@@ -30,6 +32,7 @@ import { ClassService } from './class.service';
 import { ProfessorService } from '../professor/professor.service';
 import { SemesterService } from '../semester/semester.service';
 import { StudentService } from '../student/student.service';
+import { RequestWithUser } from '../auth/auth.interface';
 
 @ApiTags('Class')
 @Controller('class')
@@ -112,7 +115,7 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
+  @Roles(Role.Admin, Role.ProfessorTcc)
   @Post(':id/student')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Class not found.' })
@@ -168,7 +171,31 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
+  @Roles(Role.ProfessorTcc)
+  @Get('professor')
+  @ApiBearerAuth()
+  async findAllProfessorClass(
+    @Request() req: RequestWithUser,
+    @Query() { skip, take }: FindAllParams,
+  ): Promise<ClassResponseDto[]> {
+    return this.classService.classes({
+      skip,
+      take,
+      where: {
+        professors: {
+          some: {
+            professorTccId: req.user.professor?.professorTcc.id,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc, Role.Student)
   @Get(':id')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Class not found.' })
@@ -258,7 +285,7 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
+  @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc)
   @Delete(':id/student/:studentId')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'StudentOnClass not found.' })
