@@ -8,8 +8,8 @@ import { UserRequest } from './auth.interface';
 
 function getRoles(type: UserType): Role[] {
   if (type === 'ADMIN') return [Role.Admin];
-  if (type === 'COORDINATOR') return [Role.Coordinator];
-  if (type === 'PROFESSOR') return [Role.Professor];
+  if (type === 'COORDINATOR') return [Role.Coordinator, Role.Professor, Role.ProfessorAdvisor];
+  if (type === 'PROFESSOR') return [Role.Professor, Role.ProfessorAdvisor];
   if (type === 'SECRETARY') return [Role.Secretary];
   if (type === 'STUDENT') return [Role.Student];
   return [];
@@ -34,7 +34,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const roles = getRoles(user.type);
 
-    if (user.professor?.professorAdvisor) roles.push(Role.ProfessorAdvisor);
     if (user.professor?.professorTcc) roles.push(Role.ProfessorTcc);
 
     return { ...user, roles };

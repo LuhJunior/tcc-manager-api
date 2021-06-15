@@ -195,6 +195,30 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Student)
+  @Get('student')
+  @ApiBearerAuth()
+  async findAllStudentClass(
+    @Request() req: RequestWithUser,
+    @Query() { skip, take }: FindAllParams,
+  ): Promise<ClassResponseDto[]> {
+    return this.classService.classes({
+      skip,
+      take,
+      where: {
+        students: {
+          some: {
+            studentId: req.user.student?.id,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc, Role.Student)
   @Get(':id')
   @ApiBearerAuth()
