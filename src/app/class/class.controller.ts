@@ -4,51 +4,57 @@ import {
   Param,
   Post,
   Body,
-  Patch,
   Delete,
   Query,
+  Request,
   NotFoundException,
   ConflictException,
   UseGuards,
-  Request,
-  BadRequestException,
+  Put,
 } from '@nestjs/common';
-import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiConflictResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiConflictResponse, ApiBearerAuth } from '@nestjs/swagger';
 import {
   CreateClassDto,
-  ClassResponseDto,
-  CreateSemesterDto,
-  SemesterResponseDto,
   CreateProfessorOnClassDto,
   ProfessorTccOnClassResponseDto,
+  UpdateClassDto,
+  ClassResponseWithSemesterDto,
+  CreateStudentOnClassDto,
+  StudentOnClassResponseDto,
+  ClassResponseDto,
 } from './class.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { Roles } from '../../decorators/roles.decorator';
 import { Role } from '../../enums/role.enum';
 import { RolesGuard } from '../../guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequestWithUser } from '../auth/auth.interface';
 import { ClassService } from './class.service';
-import { Semester } from '.prisma/client';
 import { ProfessorService } from '../professor/professor.service';
+import { SemesterService } from '../semester/semester.service';
+import { StudentService } from '../student/student.service';
+import { RequestWithUser } from '../auth/auth.interface';
 
 @ApiTags('Class')
 @Controller('class')
 export class ClassController {
   constructor(
     private readonly classService: ClassService,
+    private readonly semesterService: SemesterService,
     private readonly professorService: ProfessorService,
+    private readonly studentService: StudentService,
   ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Post()
+  @Post('semester/:id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Semester not found.' })
   @ApiConflictResponse({ description: 'Class already registered.' })
   async createClass(
-    @Body() { code, semesterId }: CreateClassDto,
-  ): Promise<ClassResponseDto> {
-    if (!await this.classService.semester({ id: semesterId })) {
+    @Param() { id }: FindByIdParam,
+    @Body() { code }: CreateClassDto,
+  ): Promise<ClassResponseWithSemesterDto> {
+    if (!await this.semesterService.semester({ id })) {
       throw new NotFoundException('Semester not found.');
     }
 
@@ -56,26 +62,31 @@ export class ClassController {
       throw new ConflictException('Class already registered');
     }
 
-    return this.classService.createClass({
-      code,
-      semester: {
-        connect: {
-          id: semesterId,
+    return {
+      ...await this.classService.createClass({
+        code,
+        semester: {
+          connect: {
+            id,
+          },
         },
-      },
-    });
+      }),
+      professors: [],
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Post('/professor')
+  @Post(':id/professor')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Class not found.' })
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   @ApiConflictResponse({ description: 'Professor already registered in the class.' })
   async createProfessorTccOnClass(
-    @Body() { professorId, classId }: CreateProfessorOnClassDto,
+    @Param() { id }: FindByIdParam,
+    @Body() { professorId }: CreateProfessorOnClassDto,
   ): Promise<ProfessorTccOnClassResponseDto> {
-    if (!await this.classService.class({ id: classId })) {
+    if (!await this.classService.class({ id })) {
       throw new NotFoundException('Class not found.');
     }
 
@@ -85,14 +96,14 @@ export class ClassController {
       throw new NotFoundException('Professor not found.');
     }
 
-    if (await this.classService.firstProfessorTccOnclass({ professorTccId: professor.professorTcc.id, classId })) {
+    if (await this.classService.firstProfessorTccOnclass({ professorTccId: professor.professorTcc.id, classId: id })) {
       throw new ConflictException('Professor already registered in the class.');
     }
 
     return this.classService.createProfessorTccOnClass({
       class: {
         connect: {
-          id: classId,
+          id,
         },
       },
       professorTcc: {
@@ -104,61 +115,50 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @Post('semester')
-  @ApiNotFoundResponse({ description: 'Semester not found.' })
-  @ApiConflictResponse({ description: 'Semester already registered.' })
-  @ApiConflictResponse({ description: 'Received period has a conflict with one registred semester.' })
-  @ApiBadRequestResponse({ description: 'Semester can\'t have less than 100 days.' })
-  @ApiBadRequestResponse({ description: 'Semester start period can\'t be greater than end period.' })
-  async createSemester(
-    @Body() { code, startPeriod, endPeriod }: CreateSemesterDto,
-  ): Promise<SemesterResponseDto> {
-    const conflict = await this.classService.conflictPeriodSemester(startPeriod, endPeriod);
-    if (conflict) {
-      throw new ConflictException(conflict, 'Received period has a conflict with one registred semester.');
+  @Roles(Role.Admin, Role.ProfessorTcc)
+  @Post(':id/student')
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Class not found.' })
+  @ApiNotFoundResponse({ description: 'Student not found.' })
+  @ApiConflictResponse({ description: 'Student already registered in a class for this semester.' })
+  async createStudentOnClass(
+    @Param() { id }: FindByIdParam,
+    @Body() { studentId }: CreateStudentOnClassDto,
+  ): Promise<StudentOnClassResponseDto> {
+    const classroom = await this.classService.class({ id });
+    if (!classroom) {
+      throw new NotFoundException('Class not found.');
     }
 
-    if (startPeriod > endPeriod) {
-      throw new BadRequestException('Semester start period can\'t be greater than end period.');
+    if (!await this.studentService.student({ id: studentId })) {
+      throw new NotFoundException('Student not found.');
     }
 
-    // 100 days * 24 hours * 60 minutes * 60 seconds * 1000 miliseconds
-    if (startPeriod.getTime() + 8640000000 > endPeriod.getTime()) {
-      throw new BadRequestException('Semester can\'t have less than 100 days.');
+    if (await this.classService.firstStudentOnclass({ studentId, class: { semesterId: classroom.semesterId } })) {
+      throw new ConflictException('Student already registered in a class for this semester.');
     }
 
-    if (await this.classService.checkSemester({ code })) {
-      throw new ConflictException('Semester already registered.');
-    }
-
-    return this.classService.createSemester({
-      code,
-      startPeriod,
-      endPeriod,
+    return this.classService.createStudentOnClass({
+      class: {
+        connect: {
+          id,
+        },
+      },
+      student: {
+        connect: {
+          id: studentId,
+        },
+      },
     });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Get('semester/current')
-  @ApiNotFoundResponse({ description: 'Semester not found.' })
-  async findCurrentSemeter(): Promise<CreateClassDto> {
-    const semester = await this.classService.currentSemester();
-
-    if (!semester) {
-      throw new NotFoundException('Semester not found.');
-    }
-
-    return semester;
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
   @Get()
+  @ApiBearerAuth()
   async findAllClass(
     @Query() { skip, take }: FindAllParams,
-  ): Promise<ClassResponseDto[]> {
+  ): Promise<ClassResponseWithSemesterDto[]> {
     return (
       await this.classService.classes({
         skip,
@@ -166,19 +166,28 @@ export class ClassController {
         orderBy: {
           createdAt: 'desc',
         },
-      })).map(({ professors, ...classroom }) => ({ ...classroom, professors: professors.map(professor => ({ ...professor.professorTcc.professor })) })
+      })).map(({ professors, ...classroom }) => ({ ...classroom, professors: professors.map(professor => professor.professorTcc.professor) })
     );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
-  @Get('semester')
-  async findAllSemesters(
+  @Roles(Role.ProfessorTcc)
+  @Get('professor')
+  @ApiBearerAuth()
+  async findAllProfessorClass(
+    @Request() req: RequestWithUser,
     @Query() { skip, take }: FindAllParams,
-  ): Promise<SemesterResponseDto[]> {
-    return this.classService.semesters({
+  ): Promise<ClassResponseDto[]> {
+    return this.classService.classes({
       skip,
       take,
+      where: {
+        professors: {
+          some: {
+            professorTccId: req.user.professor?.professorTcc.id,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -186,29 +195,93 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.Secretary)
+  @Roles(Role.Student)
+  @Get('student')
+  @ApiBearerAuth()
+  async findAllStudentClass(
+    @Request() req: RequestWithUser,
+    @Query() { skip, take }: FindAllParams,
+  ): Promise<ClassResponseDto[]> {
+    return this.classService.classes({
+      skip,
+      take,
+      where: {
+        students: {
+          some: {
+            studentId: req.user.student?.id,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc, Role.Student)
   @Get(':id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Class not found.' })
   async findClassById(
     @Param() { id }: FindByIdParam
-  ): Promise<ClassResponseDto> {
+  ): Promise<ClassResponseWithSemesterDto> {
     const classroom = await this.classService.class({ id });
 
     if (!classroom) {
       throw new NotFoundException('Class not found.');
     }
 
-    return { ...classroom, professors: classroom.professors.map(professor => ({ ...professor.professorTcc.professor })) };
+    return ({
+      ...classroom,
+      professors: classroom.professors.map(professor => professor.professorTcc.professor),
+      students: classroom.students.map(student => student.student)
+    });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary)
+  @Put(':id')
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Class not found.' })
+  @ApiConflictResponse({ description: 'Class already registered.' })
+  async updateClass(
+    @Param() { id }: FindByIdParam,
+    @Body() { code }: UpdateClassDto,
+  ): Promise<ClassResponseWithSemesterDto> {
+    const classroom = await this.classService.class({ id });
+
+    if (!classroom) {
+      throw new NotFoundException('Class not found.')
+    }
+
+    if (code === classroom.code) {
+      return ({
+        ...classroom,
+        professors: classroom.professors.map(professor => professor.professorTcc.professor),
+        students: classroom.students.map(student => student.student),
+      });
+    }
+
+    if (await this.classService.checkClass({ code })) {
+      throw new ConflictException('Class already registered');
+    }
+
+    return ({
+      ...await this.classService.updateClass({ id }, { code }),
+      professors: classroom.professors.map(professor => ({ ...professor.professorTcc.professor })),
+      students: classroom.students.map(student => student.student),
+    });
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
   @Delete(':id')
+  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Class not found.' })
   async deleteClass(
     @Param() { id }: FindByIdParam
-  ): Promise<ClassResponseDto> {
+  ): Promise<ClassResponseWithSemesterDto> {
     const classroom = await this.classService.deleteClass({ id });
 
     if (!classroom) {
@@ -220,17 +293,35 @@ export class ClassController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Delete(':id/semester/hard')
-  @ApiNotFoundResponse({ description: 'Semester not found.' })
-  async hardDeleteSemester(
-    @Param() { id }: FindByIdParam
-  ): Promise<SemesterResponseDto> {
-    const semester = await this.classService.hardDeleteSemester({ id });
+  @Delete('id:/professor/:professorId')
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'ProfessorTccOnClass not found.' })
+  async deleteProfessorTccOnClass(
+    @Param() { id, professorId }: FindByIdParam & CreateProfessorOnClassDto
+  ): Promise<ProfessorTccOnClassResponseDto> {
+    const poc = await this.classService.deleteProfessorTccOnClass(id, professorId);
 
-    if (!semester) {
-      throw new NotFoundException('Semester not found.',);
+    if (!poc) {
+      throw new NotFoundException('ProfessorTccOnClass not found.');
     }
 
-    return semester;
+    return poc;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin, Role.Secretary, Role.ProfessorTcc)
+  @Delete(':id/student/:studentId')
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'StudentOnClass not found.' })
+  async deleteStudentOnClass(
+    @Param() { id, studentId }: FindByIdParam & CreateStudentOnClassDto
+  ): Promise<StudentOnClassResponseDto> {
+    const soc = await this.classService.deleteStudentOnClass(id, studentId);
+
+    if (!soc) {
+      throw new NotFoundException('StudentOnClass not found.',);
+    }
+
+    return soc;
   }
 }

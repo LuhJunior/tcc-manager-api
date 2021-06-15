@@ -38,7 +38,15 @@ export class UserService {
             professorTcc: true,
           },
         },
-        student: true,
+        student: {
+          include: {
+            applications: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -81,7 +89,7 @@ export class UserService {
     });
   }
 
-  async updateUser(where: Prisma.UserWhereUniqueInput, password: string): Promise<User | null> {
+  async updateUser(where: Prisma.UserWhereUniqueInput, data: Prisma.UserUpdateInput): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where });
 
     if (!user || user.deletedAt) {
@@ -90,7 +98,8 @@ export class UserService {
 
     return this.prisma.user.update({
       data: {
-        password: await bcrypt.hash(password, 10),
+        ...data,
+        password: data.password ? await bcrypt.hash(data.password.toString(), 10) : undefined,
       },
       where,
       include: {
@@ -112,6 +121,31 @@ export class UserService {
       return null;
     }
 
-    return this.prisma.user.update({ data: { deletedAt: new Date() }, where });
+    return this.prisma.user.update({
+      data: {
+        professor: ['PROFESSOR', 'COORDINATOR'].includes(user.type) ? {
+          update: {
+            professorAdvisor: {
+              update: {
+                deletedAt: new Date(),
+              },
+            },
+            professorTcc: {
+              update: {
+                deletedAt: new Date(),
+              },
+            },
+            deletedAt: new Date(),
+          },
+        } : undefined,
+        student: user.type === 'STUDENT' ? {
+          update: {
+            deletedAt: new Date(),
+          },
+        } : undefined,
+        deletedAt: new Date(),
+      },
+      where,
+    });
   }
 }

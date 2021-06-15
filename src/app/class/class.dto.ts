@@ -1,7 +1,10 @@
-import { ProfessorTccOnClass, Semester, Student, StudentOnClass } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
+import { StudentOnClassStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsDate, IsNotEmpty, IsString, IsUUID, ValidateIf,  } from 'class-validator';
+import { IsDate, IsNotEmpty, IsString, IsUUID, ValidateIf, } from 'class-validator';
 import { ProfessorResponseDto } from '../professor/professor.dto';
+import { SemesterResponseDto } from '../semester/semester.dto';
+import { StudentResponseDto } from '../student/student.dto';
 
 export class CreateSemesterDto {
   @IsNotEmpty()
@@ -22,11 +25,6 @@ export class CreateSemesterDto {
 export class CreateClassDto {
   @IsNotEmpty()
   @IsString()
-  @IsUUID()
-  semesterId?: string;
-
-  @IsNotEmpty()
-  @IsString()
   code: string;
 }
 
@@ -34,19 +32,21 @@ export class CreateProfessorOnClassDto {
   @IsNotEmpty()
   @IsString()
   @IsUUID()
-  classId?: string;
+  professorId: string;
+}
 
+export class CreateStudentOnClassDto {
   @IsNotEmpty()
   @IsString()
   @IsUUID()
-  professorId?: string;
+  studentId: string;
 }
 
-// export class UpdateClassDto {
-//   @IsNotEmpty()
-//   @IsString()
-//   code?: string;
-// }
+export class UpdateClassDto {
+  @IsNotEmpty()
+  @IsString()
+  code: string;
+}
 
 export class ClassResponseDto {
   /**
@@ -57,29 +57,29 @@ export class ClassResponseDto {
    * @example CPD15
    */
   code: string;
-  students?: StudentOnClass[];
-  // professors?: ProfessorTccOnClass[];
-  professors?: ProfessorResponseDto[];
-  semester: Semester;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
 }
 
-export class SemesterResponseDto {
+export class StudentOnClassResponseDto {
   /**
    * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
    */
   id: string;
   /**
-   * @example 2021.1
+   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
    */
-  code: string;
-  startPeriod: Date;
-  endPeriod: Date;
+   studentId: string;
+  /**
+   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
+   */
+  classId: string;
+  @ApiProperty({ enum: StudentOnClassStatus })
+  status: StudentOnClassStatus;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  deletedAt: Date | null;
 }
 
 export class ProfessorTccOnClassResponseDto {
@@ -97,5 +97,11 @@ export class ProfessorTccOnClassResponseDto {
   classId: string;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  deletedAt: Date | null;
+}
+
+export class ClassResponseWithSemesterDto extends ClassResponseDto {
+  students?: StudentResponseDto[];
+  professors?: ProfessorResponseDto[];
+  semester: SemesterResponseDto;
 }
