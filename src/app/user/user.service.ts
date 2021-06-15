@@ -38,7 +38,15 @@ export class UserService {
             professorTcc: true,
           },
         },
-        student: true,
+        student: {
+          include: {
+            applications: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
       },
     });
 
