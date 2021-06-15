@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { StudentModule } from './student/student.module';
 import { RegisterModule } from './register/register.module';
+import { SemesterModule } from './semester/semester.module';
 import { ClassModule } from './class/class.module';
 
 MulterModule.register({
@@ -23,6 +24,7 @@ MulterModule.register({
     UserModule,
     StudentModule,
     RegisterModule,
+    SemesterModule,
     ClassModule,
   ],
   controllers: [],

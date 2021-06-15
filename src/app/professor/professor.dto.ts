@@ -1,6 +1,6 @@
 import { IsEmail, IsNotEmpty, IsInt, IsNumberString, IsOptional, IsString, IsUUID, MaxLength, ValidateIf,  } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Class, ProfessorTccOnClass } from '@prisma/client';
+import { ClassResponseDto } from '../class/class.dto';
 
 export class CreateProfessorAdvisorDto {
   @IsOptional()
@@ -142,13 +142,23 @@ class ProfessorAdvisorDto {
   deletedAt?: Date;
 }
 
+class ProfessorTccOnClassDto {
+  id: string;
+  professorTccId: string;
+  classId: string;
+  class: ClassResponseDto;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 class ProfessorTccDto {
   id: string;
   professorId: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
-  classes?: (ProfessorTccOnClass & { class: Class; })[];
+  classes?: ProfessorTccOnClassDto[];
 }
 
 export class ProfessorResponseDto {
@@ -161,6 +171,9 @@ export class ProfessorResponseDto {
   updatedAt: Date;
   deletedAt?: Date;
   userId: string;
+}
+
+export class ProfessorResponseWithAdvisorAndTccDto extends ProfessorResponseDto {
   professorTcc?: ProfessorTccDto;
   professorAdvisor?: ProfessorAdvisorDto;
 }

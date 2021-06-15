@@ -17,13 +17,6 @@ export class ProjectService {
         ...data,
         status: ProjectStatus.ACTIVE,
       },
-      include: {
-        professorAdvisor: {
-          include: {
-            professor: true,
-          },
-        },
-      },
     });
   }
 
@@ -35,7 +28,12 @@ export class ProjectService {
       return null;
     }
 
-    return this.prisma.application.create({ data: { project: { connect: { id: projectId } }, student: { connect: { id: studentId } } } });
+    return this.prisma.application.create({
+      data: {
+        project: { connect: { id: projectId } },
+        student: { connect: { id: studentId } },
+      },
+    });
   }
 
   async acceptProjectApplication(applicationId: string, professorAdvisorId: string): Promise<{ project: Project, application: Application } | null> {
@@ -59,7 +57,7 @@ export class ProjectService {
           status: 'IN_PROGRESS',
         },
         where: {
-          id: application.project.id,
+          id: application.projectId,
         },
       }),
       this.prisma.application.updateMany({
@@ -68,12 +66,26 @@ export class ProjectService {
         },
         where: {
           status: 'IN_PROGRESS',
+          projectId: application.projectId,
           deletedAt: null,
           NOT: {
             studentId: application.studentId,
           },
         },
-      })
+      }),
+      this.prisma.application.updateMany({
+        data: {
+          deletedAt: new Date(),
+        },
+        where: {
+          status: 'IN_PROGRESS',
+          studentId: application.studentId,
+          deletedAt: null,
+          NOT: {
+            projectId: application.projectId,
+          },
+        },
+      }),
     ]);
 
     return ({ project: updatedProject, application: updatedApplication });
@@ -156,7 +168,7 @@ export class ProjectService {
     });
   }
 
-  async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput): Promise<Project | null> {
+  async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput) {
     const project = await this.prisma.project.findUnique({
       where: projectWhereUniqueInput,
       include: {
@@ -184,14 +196,14 @@ export class ProjectService {
     return project;
   }
 
-  async projects({ skip, take, cursor, where, orderBy, include }: {
+  async projects({ skip, take, cursor, where, whereApplication, orderBy }: {
     skip?: number;
     take?: number;
     cursor?: Prisma.ProjectWhereUniqueInput;
     where?: Prisma.ProjectWhereInput;
+    whereApplication?: Prisma.ApplicationWhereInput;
     orderBy?: Prisma.ProjectOrderByInput;
-    include?: Prisma.ProjectInclude;
-  }): Promise<Project[]> {
+  }) {
     return this.prisma.project.findMany({
       skip,
       take,
@@ -208,12 +220,15 @@ export class ProjectService {
           },
         },
         applications: {
+          include: {
+            student: true,
+          },
           where: {
+            ...whereApplication,
             deletedAt: null,
           },
         },
         files: true,
-        ...include,
       },
     });
   }
@@ -221,7 +236,7 @@ export class ProjectService {
   async updateProject({ where, data }: {
     where: Prisma.ProjectWhereUniqueInput & { professorAdvisorId?: string };
     data: Prisma.ProjectUpdateInput;
-  }): Promise<Project | null> {
+  }) {
     const { professorAdvisorId } = where;
     delete where.professorAdvisorId;
     const project = await this.prisma.project.findUnique({ where });

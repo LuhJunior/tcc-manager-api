@@ -22,7 +22,7 @@ import {
   FindByEnrollmentCodeParam,
   FindAllParams,
   UpdateProfessorDto,
-  ProfessorResponseDto
+  ProfessorResponseWithAdvisorAndTccDto
 } from './professor.dto';
 import { ApiTags, ApiNotFoundResponse, ApiBadRequestResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
@@ -48,7 +48,7 @@ export class ProfessorController {
   @ApiBadRequestResponse({ description: 'Professor Advisor already registry for the given professorId.' })
   async createProfessorAdvisor(
     @Body() professorData: CreateProfessorAdvisorDto,
-  ): Promise<ProfessorResponseDto> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     if (professorData.professorId) {
       const professor = await this.professorService.professor({ id: professorData.professorId });
 
@@ -94,7 +94,7 @@ export class ProfessorController {
   @ApiBadRequestResponse({ description: 'Professor TCC already registry for the given professorId.' })
   async createProfessorTcc(
     @Body() professorData: CreateProfessorTccDto,
-  ): Promise<ProfessorResponseDto> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     if (professorData.professorId) {
       const professor = await this.professorService.professor({ id: professorData.professorId });
 
@@ -141,7 +141,7 @@ export class ProfessorController {
   @Roles(Role.Professor)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseDto> {
+  async findAuthProfessor(@Request() req: RequestWithUser): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     const professor = await this.professorService.professor({ userId: req.user.id });
 
     if (!professor) throw new NotFoundException('Professor not found.');
@@ -154,7 +154,7 @@ export class ProfessorController {
   @Get('professor/enrollmentCode/:enrollmentCode')
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseDto> {
+  async findProfessorByEnrollmentCode(@Param() { enrollmentCode }: FindByEnrollmentCodeParam): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     const professor = await this.professorService.professor({ enrollmentCode });
 
     if (!professor) throw new NotFoundException('Professor not found.');
@@ -168,18 +168,18 @@ export class ProfessorController {
   @ApiBearerAuth()
   async findAllProfessors(
     @Query() { skip, take } : FindAllParams,
-  ): Promise<ProfessorResponseDto[]> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto[]> {
     return this.professorService.professors({ skip, take, orderBy: { createdAt: 'desc' } });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
-  @Get('professor/create/:id/class')
+  @Get('professor/create/class/:id')
   @ApiBearerAuth()
   async findAllProfessorsTcc(
     @Param() { id }: FindByIdParam,
     @Query() { skip, take } : FindAllParams,
-  ): Promise<ProfessorResponseDto[]> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto[]> {
     return this.professorService.professors({
       skip,
       take,
@@ -213,7 +213,7 @@ export class ProfessorController {
   @Roles(Role.Admin, Role.Secretary)
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: 'Professor not found.' })
-  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseDto> {
+  async findProfessorById(@Param() { id }: FindByIdParam): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     const professor = await this.professorService.professor({ id });
 
     if (!professor) throw new NotFoundException('Professor not found.');
@@ -229,7 +229,7 @@ export class ProfessorController {
   async updateProfessor(
     @Request() req: RequestWithUser,
     @Body() professorData: UpdateProfessorDto,
-  ): Promise<ProfessorResponseDto> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     const professor = await this.professorService.updateProfessor({
       data: professorData,
       where: { id: req.user.professor?.id },
@@ -247,7 +247,7 @@ export class ProfessorController {
   @ApiNotFoundResponse({ description: 'Professor not found.' })
   async deleteProfessor(
     @Param() { id }: FindByIdParam,
-  ): Promise<ProfessorResponseDto> {
+  ): Promise<ProfessorResponseWithAdvisorAndTccDto> {
     const professor = await this.professorService.deleteProfessor({ id });
 
     if (!professor) throw new NotFoundException('Professor not found.');

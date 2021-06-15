@@ -14,17 +14,17 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdatePasswordDto, UserResponseDto } from './user.dto';
+import { CreateUserDto, UpdateUserDto, UpdateUserQuery, UserResponseDto } from './user.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
-import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/enums/role.enum';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
+import { Role } from '../../enums/role.enum';
+import { RolesGuard } from '../../guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProfessorService } from '../professor/professor.service';
 import { RequestWithUser } from '../auth/auth.interface';
 
 @ApiTags('User')
-@Controller()
+@Controller('user')
 export class UserController {
   constructor(
     private readonly userService: UserService,
@@ -33,7 +33,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Post('user')
+  @Post()
   async createUser(
     @Body() { login, password, type, ...professor }: CreateUserDto,
   ): Promise<UserResponseDto> {
@@ -45,7 +45,7 @@ export class UserController {
       login,
       password,
       type,
-      professor: type === 'PROFESSOR' ? {
+      professor: ['PROFESSOR', 'COORDINATOR'].includes(type) ? {
         create: {
           ...professor,
           professorTcc: { create: { } },
@@ -57,7 +57,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Get('user/:id')
+  @Get(':id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   async findUserById(
     @Param() { id }: FindByIdParam
@@ -73,7 +73,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Get('user')
+  @Get()
   async findAllUsers(
     @Query() { skip, take }: FindAllParams,
     @Request() req: RequestWithUser,
@@ -97,13 +97,26 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Patch('user/:id')
+  @Patch(':id')
   @ApiNotFoundResponse({ description: 'User not found.' })
-  async updateUserPassword(
+  async updateUser(
     @Param() { id }: FindByIdParam,
-    @Body() { password }: UpdatePasswordDto,
+    @Query() { type } : UpdateUserQuery,
+    @Body() { password, name, email, phoneNumber }: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const user = await this.userService.updateUser({ id }, password);
+    const user = await this.userService.updateUser({ id }, {
+      password,
+      professor: ['PROFESSOR', 'COORDINATOR'].includes(type) ? {
+        update: {
+          name, email, phoneNumber,
+        },
+      } : undefined,
+      student: type === 'STUDENT' ? {
+        update: {
+          name, email, phoneNumber,
+        },
+      } : undefined,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found.');
@@ -114,7 +127,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
-  @Delete('user/:id')
+  @Delete(':id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   async deleteUser(
     @Param() { id }: FindByIdParam

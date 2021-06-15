@@ -68,26 +68,6 @@ describe('professor.e2e.spec.ts', () => {
         expect(res.body).toEqual(expect.objectContaining(professor));
       });
 
-      it('Should create an advisor professor from a tcc professor', async () => {
-        const professor = (await request(app.getHttpServer())
-          .post('/professor/tcc')
-          .auth(jwtToken, { type: 'bearer' })
-          .send({
-            name: faker.name.findName(),
-            email: faker.internet.email(),
-            enrollmentCode: faker.datatype.number({ min: 10000000000 }).toString(),
-            phoneNumber: faker.phone.phoneNumber('(##)#####-####')
-          })).body;
-
-        const res = await request(app.getHttpServer())
-          .post('/professor/advisor')
-          .auth(jwtToken, { type: 'bearer' })
-          .send({ professorId: professor.id});
-
-        expect(res.status).toBe(201);
-        expect(res.body).toEqual(expect.objectContaining(professor));
-      });
-
       it('If name is not a string, should return a status 400', async () => {
         const res = await request(app.getHttpServer())
           .post('/professor/advisor')

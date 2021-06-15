@@ -36,7 +36,16 @@ export class StudentService {
     where?: Prisma.StudentWhereInput;
     orderBy?: Prisma.StudentOrderByInput;
   }): Promise<Student[]> {
-    return this.prisma.student.findMany({ skip, take, cursor, where: { ...where, deletedAt: null, }, orderBy });
+    return this.prisma.student.findMany({
+      skip,
+      take,
+      cursor,
+      where: {
+        ...where,
+        deletedAt: null,
+      },
+      orderBy,
+    });
   }
 
   // async updateUser(where: Prisma.UserWhereUniqueInput, password: string): Promise<Student | null> {

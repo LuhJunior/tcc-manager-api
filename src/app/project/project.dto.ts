@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProjectStatus } from '@prisma/client';
+import { ApplicationStatus, ProjectStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { ProfessorResponseDto } from '../professor/professor.dto';
+import { StudentResponseDto } from '../student/student.dto';
 
 export class FileDto {
   /**
@@ -123,13 +125,32 @@ export class ProjectResponseDto {
    * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
    */
   professorAdvisorId: string;
-
-  files?: FileDto[];
   @ApiProperty({ enum: ProjectStatus })
   status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  deletedAt: Date | null;
+}
+
+export class ApplicationResponseDto {
+  id: string;
+  studentId: string;
+  projectId: string;
+  @ApiProperty({ enum: ApplicationStatus })
+  status: ApplicationStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
+export class ProjectResponseWithProfessorDto extends ProjectResponseDto {
+  professor: ProfessorResponseDto;
+  files?: FileDto[];
+  applications?: ApplicationResponseDto[];
+}
+
+export class ProjectResponseWithProfessorAndStudentDto extends ProjectResponseWithProfessorDto {
+  student: StudentResponseDto | null;
 }
 
 export class ProjectAgreementPdfResponseDto {
