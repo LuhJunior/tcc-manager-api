@@ -10,6 +10,7 @@ import { StudentModule } from './student/student.module';
 import { RegisterModule } from './register/register.module';
 import { SemesterModule } from './semester/semester.module';
 import { ClassModule } from './class/class.module';
+import { ExamModule } from './exam/exam.module';
 
 MulterModule.register({
   storage: memoryStorage(),
@@ -26,6 +27,7 @@ MulterModule.register({
     RegisterModule,
     SemesterModule,
     ClassModule,
+    ExamModule,
   ],
   controllers: [],
   providers: [],

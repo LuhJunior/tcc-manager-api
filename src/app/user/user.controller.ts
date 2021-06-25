@@ -135,7 +135,7 @@ export class UserController {
     const user = await this.userService.deleteUser({ id });
 
     if (!user) {
-      throw new NotFoundException('User not found.',);
+      throw new NotFoundException('User not found.');
     }
 
     return user;

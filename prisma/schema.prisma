@@ -89,6 +89,7 @@ model ProfessorTccOnClass {
 
 model Exam {
   id                    String              @id @default(uuid())
+  title                 String
   description           String
   deadlineAt            DateTime                                                                         @map(name: "deadline_at")
   professorTccOnClassId String                                                                           @map(name: "professor_tcc_class_id")
