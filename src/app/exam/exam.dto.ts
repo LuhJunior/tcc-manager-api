@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { FileDto, FileResponseDto } from '../project/project.dto';
 import { StudentResponseDto } from '../student/student.dto';
 
 export class CreateExamDto {
@@ -27,7 +28,9 @@ export class CreatePostDto {
 
   @IsOptional()
   @IsArray()
-  files?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
+  files?: FileDto[];
 }
 
 export class CreateExamParam {
@@ -82,7 +85,7 @@ export class UpdatePostDto {
   @IsOptional()
   @IsNotEmpty()
   @IsString({ each: true })
-  files?: string[];
+  files?: FileDto[];
 }
 
 export class ExamResponseDto {
@@ -109,7 +112,7 @@ export class PostResponseDto {
   id: string;
   title: string;
   content: string;
-  files: string[];
+  files: FileResponseDto[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

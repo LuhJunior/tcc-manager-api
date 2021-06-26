@@ -73,24 +73,25 @@ export class ExamController {
       throw new NotFoundException('Exam not found.');
     }
 
-    return {
-      ...await this.examService.createPost({
-        title,
-        content,
-        fileUrl: files?.join('|'),
-        exam: {
-          connect: {
-            id,
-          },
+    return this.examService.createPost({
+      title,
+      content,
+      exam: {
+        connect: {
+          id,
         },
-        student: {
-          connect: {
-            id: req.user.student.id,
-          },
+      },
+      student: {
+        connect: {
+          id: req.user.student.id,
         },
-      }),
-      files,
-    };
+      },
+      files: files && {
+        createMany: {
+          data: files.map(({ title, description, fileUrl }) => ({ title, description, fileUrl, professorId: req.user.professor?.id })),
+        },
+      },
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -106,10 +107,7 @@ export class ExamController {
       throw new NotFoundException('Exam not found.');
     }
 
-    return {
-      ...exam,
-      posts: exam.posts.map(post => ({ ...post, files: post.fileUrl.split('|') })),
-    };
+    return exam;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -122,7 +120,7 @@ export class ExamController {
     const studentId = req.user.student?.id;
     const professorTccId = req.user.professor?.professorTcc?.id;
 
-    const exams = await this.examService.exams({
+    return this.examService.exams({
       skip,
       take,
       orderBy: {
@@ -131,22 +129,17 @@ export class ExamController {
       where: {
         professorTccOnClass: {
           classId,
-          class: studentId ? {
+          class: studentId && {
             students: {
               some: {
                 studentId: studentId,
               },
             },
-          } : undefined,
+          },
           professorTccId,
         },
       },
     });
-
-    return exams.map(exam => ({
-      ...exam,
-      posts: exam.posts.map(post => ({ ...post, files: post.fileUrl.split('|') })),
-    }));
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -167,31 +160,42 @@ export class ExamController {
       throw new NotFoundException('Exam not found.');
     }
 
-    return {
-      ...exam,
-      posts: exam.posts.map(post => ({ ...post, files: post.fileUrl.split('|') })),
-    };;
+    return exam;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Student)
   @Patch('post/:id')
-  @ApiNotFoundResponse({ description: 'Exam not found.' })
+  @ApiNotFoundResponse({ description: 'Post not found.' })
   async updatePost(
     @Param() { id }: FindByIdParam,
     @Body() { title, content, files }: UpdatePostDto,
   ): Promise<PostResponseDto> {
-    const post = await this.examService.updatePost({ id }, {
-      title,
-      content,
-      fileUrl: files.join('|'),
-    });
+    const post = await this.examService.post({ id });
 
     if (!post) {
-      throw new NotFoundException('Exam not found.');
+      throw new NotFoundException('Post not found.');
     }
 
-    return { ...post, files: post.fileUrl.split('|') };
+    return this.examService.updatePost({ id }, {
+      title,
+      content,
+      files: files && {
+        createMany: {
+          data: files,
+        },
+        updateMany: {
+          data: {
+            deletedAt: new Date(),
+          },
+          where: {
+            id: {
+              in: post.files.map(({ id }) => id),
+            },
+          },
+        },
+      },
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -223,6 +227,6 @@ export class ExamController {
       throw new NotFoundException('Post not found.');
     }
 
-    return { ...post, files: post.fileUrl.split('|') };
+    return post;
   }
 }

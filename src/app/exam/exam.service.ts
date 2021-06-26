@@ -17,6 +17,9 @@ export class ExamService {
   async createPost(data: Prisma.PostCreateInput) {
     return this.prisma.post.create({
       data,
+      include: {
+        files: true,
+      },
     });
   }
 
@@ -27,6 +30,11 @@ export class ExamService {
         posts: {
           include: {
             student: true,
+            files: {
+              where: {
+                deletedAt: null,
+              },
+            },
           },
           where: {
             deletedAt: null,
@@ -40,6 +48,26 @@ export class ExamService {
     }
 
     return exam;
+  }
+
+  async post(where: Prisma.PostWhereUniqueInput) {
+    const post = await this.prisma.post.findUnique({
+      where,
+      include: {
+        student: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
+    });
+
+    if (!post || post.deletedAt) {
+      return null;
+    }
+
+    return post;
   }
 
   async exams({ skip, take, cursor, where, orderBy }: {
@@ -62,6 +90,11 @@ export class ExamService {
         posts: {
           include: {
             student: true,
+            files: {
+              where: {
+                deletedAt: null,
+              },
+            },
           },
           where: {
             deletedAt: null,
@@ -85,6 +118,11 @@ export class ExamService {
         posts: {
           include: {
             student: true,
+            files: {
+              where: {
+                deletedAt: null,
+              },
+            },
           },
           where: {
             deletedAt: null,
@@ -97,6 +135,14 @@ export class ExamService {
   async updatePost(where: Prisma.PostWhereUniqueInput, data: Prisma.PostUpdateInput) {
     return this.prisma.post.update({
       data,
+      include: {
+        student: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
       where,
     });
   }
@@ -126,6 +172,13 @@ export class ExamService {
     return this.prisma.post.update({
       data: {
         deletedAt: new Date(),
+      },
+      include: {
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
       where,
     });

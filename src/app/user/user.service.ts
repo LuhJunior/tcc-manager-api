@@ -99,7 +99,7 @@ export class UserService {
     return this.prisma.user.update({
       data: {
         ...data,
-        password: data.password ? await bcrypt.hash(data.password.toString(), 10) : undefined,
+        password: data.password && await bcrypt.hash(data.password.toString(), 10),
       },
       where,
       include: {

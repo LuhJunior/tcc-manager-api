@@ -18,8 +18,9 @@ export class FileDto {
    * Description of the file
    * @example 'Some article'
    */
+  @IsOptional()
   @IsString()
-  description: string;
+  description?: string;
 
   /**
    * Url of the file on the cloud
@@ -108,6 +109,13 @@ export class UpdateProjectDto {
   files?: FileDto[];
 }
 
+export class UpdateProjectAddFilesDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
+  files: FileDto[];
+}
+
 export class ProjectResponseDto {
   /**
    * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
@@ -143,9 +151,18 @@ export class ApplicationResponseDto {
   deletedAt: Date | null;
 }
 
+
+export class FileResponseDto extends FileDto {
+  /**
+   * @example 'a822ec2a-5d28-4b6f-8406-54f3a0be2717'
+   */
+  id: string;
+}
+
+
 export class ProjectResponseWithProfessorDto extends ProjectResponseDto {
   professor: ProfessorResponseDto;
-  files?: FileDto[];
+  files?: FileResponseDto[];
   applications?: ApplicationResponseDto[];
 }
 
