@@ -29,6 +29,7 @@ model Class {
   semester   Semester              @relation(fields: [semesterId], references: [id])
   professors ProfessorTccOnClass[]
   students   StudentOnClass[]
+  files      ClassFile[]
   createdAt  DateTime              @default(now())                                      @map(name: "created_at")
   updatedAt  DateTime              @updatedAt                                           @map(name: "updated_at")
   deletedAt  DateTime?                                                                  @map(name: "deleted_at")
@@ -36,6 +37,21 @@ model Class {
   @@index([code])
   @@index([deletedAt])
   @@map(name: "class")
+}
+
+model ClassFile {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String                                                       @map(name: "file_url")
+  classId     String                                                       @map(name: "post_id")
+  class       Class     @relation(fields: [classId], references: [id])
+  createdAt   DateTime  @default(now())                                    @map(name: "created_at")
+  updatedAt   DateTime  @updatedAt                                         @map(name: "updated_at")
+  deletedAt   DateTime?                                                    @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "class_file")
 }
 
 model Professor {
@@ -48,7 +64,6 @@ model Professor {
   user             User               @relation(fields: [userId], references: [id])
   professorTcc     ProfessorTcc?
   professorAdvisor ProfessorAdvisor?
-  files            File[]
   createdAt        DateTime           @default(now())                               @map(name: "created_at")
   updatedAt        DateTime           @updatedAt                                    @map(name: "updated_at")
   deletedAt        DateTime?                                                        @map(name: "deleted_at")
@@ -89,6 +104,7 @@ model ProfessorTccOnClass {
 
 model Exam {
   id                    String              @id @default(uuid())
+  title                 String
   description           String
   deadlineAt            DateTime                                                                         @map(name: "deadline_at")
   professorTccOnClassId String                                                                           @map(name: "professor_tcc_class_id")
@@ -103,20 +119,35 @@ model Exam {
 }
 
 model Post {
-  id        String    @id @default(uuid())
+  id        String     @id @default(uuid())
   title     String
   content   String
-  fileUrl   String?                                                    @map(name: "file_url")
-  examId    String                                                     @map(name: "exam_id")
-  exam      Exam      @relation(fields: [examId], references: [id])
-  studentId String                                                     @map(name: "student_id")
-  student   Student   @relation(fields: [studentId], references: [id])
-  createdAt DateTime  @default(now())                                  @map(name: "created_at")
-  updatedAt DateTime  @updatedAt                                       @map(name: "updated_at")
-  deletedAt DateTime?                                                  @map(name: "deleted_at")
+  examId    String                                                      @map(name: "exam_id")
+  exam      Exam       @relation(fields: [examId], references: [id])
+  studentId String                                                      @map(name: "student_id")
+  student   Student    @relation(fields: [studentId], references: [id])
+  files     PostFile[]
+  createdAt DateTime   @default(now())                                  @map(name: "created_at")
+  updatedAt DateTime   @updatedAt                                       @map(name: "updated_at")
+  deletedAt DateTime?                                                   @map(name: "deleted_at")
 
   @@index([deletedAt])
   @@map(name: "post")
+}
+
+model PostFile {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String                                                       @map(name: "file_url")
+  postId      String                                                       @map(name: "post_id")
+  post        Post      @relation(fields: [postId], references: [id])
+  createdAt   DateTime  @default(now())                                    @map(name: "created_at")
+  updatedAt   DateTime  @updatedAt                                         @map(name: "updated_at")
+  deletedAt   DateTime?                                                    @map(name: "deleted_at")
+
+  @@index([deletedAt])
+  @@map(name: "post_file")
 }
 
 enum StudentOnClassStatus {
@@ -231,7 +262,7 @@ model Project {
   professorAdvisor   ProfessorAdvisor @relation(fields: [professorAdvisorId], references: [id])
   status             ProjectStatus    @default(ACTIVE)
   applications       Application[]
-  files              File[]
+  files              ProjectFile[]
   createdAt          DateTime         @default(now())                                            @map(name: "created_at")
   updatedAt          DateTime         @updatedAt                                                 @map(name: "updated_at")
   deletedAt          DateTime?                                                                   @map(name: "deleted_at")
@@ -240,21 +271,19 @@ model Project {
   @@map(name: "project")
 }
 
-model File {
+model ProjectFile {
   id          String    @id @default(uuid())
   title       String
-  description String
+  description String?
   fileUrl     String                                                       @map(name: "file_url")
   projectId   String                                                       @map(name: "project_id")
   project     Project   @relation(fields: [projectId], references: [id])
-  professorId String                                                       @map(name: "professor_id")
-  professor   Professor @relation(fields: [professorId], references: [id])
   createdAt   DateTime  @default(now())                                    @map(name: "created_at")
   updatedAt   DateTime  @updatedAt                                         @map(name: "updated_at")
   deletedAt   DateTime?                                                    @map(name: "deleted_at")
 
   @@index([deletedAt])
-  @@map(name: "file")
+  @@map(name: "project_file")
 }
 
 model Student {

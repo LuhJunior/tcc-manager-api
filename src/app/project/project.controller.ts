@@ -24,6 +24,8 @@ import {
   ProjectResponseWithProfessorDto,
   ApplicationResponseDto,
   ProjectResponseWithProfessorAndStudentDto,
+  UpdateProjectAddFilesDto,
+  FileResponseDto,
 } from './project.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -247,6 +249,30 @@ export class ProjectController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/files')
+  @Roles(Role.ProfessorAdvisor, Role.Student)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Project not found.' })
+  async updateProjectAddFiles(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+    @Body() { files }: UpdateProjectAddFilesDto,
+  ): Promise<ProjectResponseWithProfessorDto> {
+    const project = await this.projectService.updateProjectFiles({
+      files,
+      where: {
+        id,
+        professorAdvisorId: req.user.professor?.professorAdvisor?.id,
+        studentId: req.user.student?.id,
+      },
+    });
+
+    if (!project) throw new NotFoundException('Project not found.');
+
+    return { ...project, professor: project.professorAdvisor.professor };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/deactivate')
   @Roles(Role.ProfessorAdvisor)
   @ApiBearerAuth()
@@ -349,6 +375,28 @@ export class ProjectController {
     }
 
     return this.projectService.deleteProjectApplication(id, application.project.professorAdvisorId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('file/:id')
+  @Roles(Role.ProfessorAdvisor, Role.Student)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'File not found.' })
+  async removeProjectFile(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+  ): Promise<FileResponseDto> {
+    const file = await this.projectService.projectFile({ id });
+
+    if (
+      !file ||
+      (file.project.professorAdvisorId !== req.user.professor?.professorAdvisor?.id
+        && !file.project.applications.find(app => app.status === 'ACCEPTED' && app.studentId === req.user.student?.id))
+    ) {
+      throw new NotFoundException('File not found.');
+    }
+
+    return this.projectService.deleteProjectFile({ id });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

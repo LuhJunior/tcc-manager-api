@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { StudentOnClassStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsDate, IsNotEmpty, IsString, IsUUID, ValidateIf, } from 'class-validator';
+import { IsDate, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import { ProfessorResponseDto } from '../professor/professor.dto';
 import { SemesterResponseDto } from '../semester/semester.dto';
 import { StudentResponseDto } from '../student/student.dto';

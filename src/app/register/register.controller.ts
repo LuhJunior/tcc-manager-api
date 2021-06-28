@@ -105,11 +105,11 @@ export class RegisterController {
           email: register.email,
           enrollmentCode: register.enrollmentCode,
           phoneNumber: register.phoneNumber,
-          classes: classId ? {
+          classes: classId && {
             create: {
               classId,
             },
-          } : undefined,
+          },
         },
       },
     });
@@ -122,7 +122,7 @@ export class RegisterController {
   async findAllRegisters(
     @Query() { skip, take, type }: FindAllParams & FilterByType,
   ): Promise<RegisterResponseDto[]> {
-    return this.registerService.registers({ skip, take, where: type ? { type } : undefined, orderBy: { createdAt: 'desc' } });
+    return this.registerService.registers({ skip, take, where: type && { type }, orderBy: { createdAt: 'desc' } });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

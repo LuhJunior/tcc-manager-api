@@ -6,6 +6,7 @@ import {
   Prisma,
   ProjectStatus
 } from '@prisma/client';
+import { FileDto } from './project.dto';
 
 @Injectable()
 export class ProjectService {
@@ -168,6 +169,29 @@ export class ProjectService {
     });
   }
 
+  async projectFile(where: Prisma.ProjectFileWhereUniqueInput) {
+    const file = await this.prisma.projectFile.findUnique({
+      where,
+      include: {
+        project: {
+          include: {
+            applications: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!file || file.deletedAt) {
+      return null;
+    }
+
+    return file;
+  }
+
   async project(projectWhereUniqueInput: Prisma.ProjectWhereUniqueInput) {
     const project = await this.prisma.project.findUnique({
       where: projectWhereUniqueInput,
@@ -185,7 +209,11 @@ export class ProjectService {
             deletedAt: null,
           },
         },
-        files: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
 
@@ -228,7 +256,11 @@ export class ProjectService {
             deletedAt: null,
           },
         },
-        files: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
   }
@@ -259,7 +291,67 @@ export class ProjectService {
             deletedAt: null,
           },
         },
-        files: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
+    });
+  }
+
+  async updateProjectFiles({ files, where }: {
+    files: FileDto[];
+    where: Prisma.ProjectWhereUniqueInput & { professorAdvisorId?: string; studentId: string };
+  }) {
+    const { professorAdvisorId, studentId } = where;
+    delete where.professorAdvisorId;
+    delete where.studentId;
+    const project = await this.prisma.project.findUnique({
+      where,
+      include: {
+        applications: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        professorAdvisor: true,
+      },
+    });
+
+    if (!project
+      || project.deletedAt
+      || (professorAdvisorId && project.professorAdvisorId !== professorAdvisorId)
+      || (studentId && !project.applications.find(a => a.studentId === studentId && a.status === 'ACCEPTED'))
+    ) {
+      return null;
+    }
+
+    return this.prisma.project.update({
+      data: {
+        files: {
+          createMany: {
+            data: files,
+          },
+        },
+      },
+      where,
+      include: {
+        professorAdvisor: {
+          include: {
+            professor: true,
+          },
+        },
+        applications: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
   }
@@ -306,6 +398,21 @@ export class ProjectService {
       where: {
         id: applicationId,
       },
+    });
+  }
+
+  async deleteProjectFile(where: Prisma.ProjectFileWhereUniqueInput) {
+    const file = await this.prisma.projectFile.findUnique({ where });
+
+    if (!file || file.deletedAt) {
+      return null;
+    }
+
+    return this.prisma.projectFile.update({
+      data: {
+        deletedAt: new Date(),
+      },
+      where,
     });
   }
 }
