@@ -67,6 +67,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNotEmpty()
   @IsString()
+  @IsNumberString({ no_symbols: true })
+  @MaxLength(15)
+  enrollmentCode: string | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
   @IsEmail()
   email: string | undefined;
 
