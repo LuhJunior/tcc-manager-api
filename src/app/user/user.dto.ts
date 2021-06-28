@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Student, UserType } from '@prisma/client';
-import { Type } from 'class-transformer';
 import { IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 import { ProfessorResponseWithAdvisorAndTccDto } from '../professor/professor.dto';
 

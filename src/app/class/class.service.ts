@@ -5,6 +5,7 @@ import {
   Semester,
   Prisma,
 } from '@prisma/client';
+import { FileDto } from '../project/project.dto';
 
 @Injectable()
 export class ClassService {
@@ -47,6 +48,11 @@ export class ClassService {
           },
         },
         semester: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
 
@@ -158,8 +164,32 @@ export class ClassService {
             deletedAt: null,
           },
         },
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
+  }
+
+  async classFile(where: Prisma.ClassFileWhereUniqueInput) {
+    const file = await this.prisma.classFile.findUnique({
+      where,
+      include: {
+        class: {
+          include: {
+            professors: true,
+          },
+        },
+      },
+    });
+
+    if (!file || file.deletedAt) {
+      return null;
+    }
+
+    return file;
   }
 
   async updateClass(where: Prisma.ClassWhereUniqueInput, data: Prisma.ClassUpdateInput): Promise<Class & { semester: Semester } | null> {
@@ -184,6 +214,63 @@ export class ClassService {
           },
         },
         semester: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
+    });
+  }
+
+  async updateClassFiles({ files, where }: {
+    files: FileDto[];
+    where: Prisma.ClassWhereUniqueInput & { professorTccId?: string; };
+  }) {
+    const { professorTccId } = where;
+    delete where.professorTccId;
+
+    const classroom = await this.prisma.class.findUnique({
+      where,
+      include: {
+        professors: {
+          where: {
+            professorTccId,
+          },
+        },
+      },
+    });
+
+    if (!classroom || classroom.deletedAt || (professorTccId && !classroom.professors.length)) {
+      return null;
+    }
+
+    return this.prisma.class.update({
+      data: {
+        files: {
+          createMany: {
+            data: files,
+          },
+        },
+      },
+      where,
+      include: {
+        professors: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        students: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        semester: true,
+        files: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
   }
@@ -216,5 +303,20 @@ export class ClassService {
     }
 
     return this.prisma.studentOnClass.update({ data: { deletedAt: new Date() }, where: { id: soc.id } });
+  }
+
+  async deleteClassFile(where: Prisma.ClassFileWhereUniqueInput) {
+    const file = await this.prisma.classFile.findUnique({ where });
+
+    if (!file || file.deletedAt) {
+      return null;
+    }
+
+    return this.prisma.classFile.update({
+      data: {
+        deletedAt: new Date(),
+      },
+      where,
+    });
   }
 }
