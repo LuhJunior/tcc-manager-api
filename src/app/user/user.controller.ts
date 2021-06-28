@@ -11,8 +11,9 @@ import {
   ConflictException,
   UseGuards,
   Request,
+  Put,
 } from '@nestjs/common';
-import { ApiTags, ApiNotFoundResponse } from '@nestjs/swagger';
+import { ApiTags, ApiNotFoundResponse, ApiConflictResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UpdateUserQuery, UserResponseDto } from './user.dto';
 import { FindAllParams, FindByIdParam } from '../professor/professor.dto';
@@ -99,30 +100,49 @@ export class UserController {
   @Roles(Role.Admin)
   @Patch(':id')
   @ApiNotFoundResponse({ description: 'User not found.' })
+  @ApiConflictResponse({ description: 'Professor enrollmentCode already registred' })
   async updateUser(
     @Param() { id }: FindByIdParam,
     @Query() { type } : UpdateUserQuery,
-    @Body() { password, name, email, phoneNumber }: UpdateUserDto,
+    @Body() { password, name, enrollmentCode, email, phoneNumber }: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const user = await this.userService.updateUser({ id }, {
-      password,
-      professor: ['PROFESSOR', 'COORDINATOR'].includes(type) ? {
-        update: {
-          name, email, phoneNumber,
-        },
-      } : undefined,
-      student: type === 'STUDENT' ? {
-        update: {
-          name, email, phoneNumber,
-        },
-      } : undefined,
-    });
+    const user = await this.userService.user({ id });
 
     if (!user) {
       throw new NotFoundException('User not found.');
     }
 
-    return user;
+    if (
+      ['PROFESSOR', 'COORDINATOR', 'STUDENT'].includes(user.type)
+      && !user.professor
+      && await this.professorService.professor({ enrollmentCode })
+    ) {
+      throw new ConflictException('Professor enrollmentCode already registred');
+    }
+
+    return this.userService.updateUser({ id }, {
+      password,
+      professor: ['PROFESSOR', 'COORDINATOR'].includes(type) ? {
+        upsert: {
+          create: {
+            name, enrollmentCode, email, phoneNumber,
+          },
+          update: {
+            name, email, phoneNumber,
+          },
+        }
+      } : undefined,
+      student: type === 'STUDENT' ? {
+        upsert: {
+          create: {
+            name, enrollmentCode, email, phoneNumber,
+          },
+          update: {
+            name, email, phoneNumber,
+          },
+        },
+      } : undefined,
+    });
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
