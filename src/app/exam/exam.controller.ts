@@ -99,9 +99,30 @@ export class ExamController {
   @Get(':id')
   @ApiNotFoundResponse({ description: 'Exam not found.' })
   async findExamById(
-    @Param() { id }: FindByIdParam
+    @Param() { id }: FindByIdParam,
+    @Request() req: RequestWithUser,
   ): Promise<ExamWithPostResponseDto> {
-    const exam = await this.examService.exam({ id });
+    // const exam = await this.examService.exam({ id });
+    const studentId = req.user.student?.id;
+    const professorTccId = req.user.professor?.professorTcc?.id;
+
+    const exam = (await this.examService.exams({
+      cursor: {
+        id,
+      },
+      where: {
+        professorTccOnClass: {
+          class: studentId && {
+            students: {
+              some: {
+                studentId: studentId,
+              },
+            },
+          },
+          professorTccId,
+        },
+      },
+    }))[0];
 
     if (!exam) {
       throw new NotFoundException('Exam not found.');
@@ -182,7 +203,7 @@ export class ExamController {
       content,
       files: files && {
         createMany: {
-          data: files,
+          data: files.filter(({ id }) => !id),
         },
         updateMany: {
           data: {
@@ -190,7 +211,7 @@ export class ExamController {
           },
           where: {
             id: {
-              in: post.files.map(({ id }) => id),
+              in: post.files.filter(({ id }) => !files.find(f => f.id === id)).map(({ id }) => id),
             },
           },
         },

@@ -11,6 +11,7 @@ import {
   ConflictException,
   UseGuards,
   Put,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiNotFoundResponse, ApiConflictResponse, ApiBearerAuth } from '@nestjs/swagger';
 import {
@@ -33,6 +34,7 @@ import { ProfessorService } from '../professor/professor.service';
 import { SemesterService } from '../semester/semester.service';
 import { StudentService } from '../student/student.service';
 import { RequestWithUser } from '../auth/auth.interface';
+import { FileResponseDto, UpdateProjectAddFilesDto } from '../project/project.dto';
 
 @ApiTags('Class')
 @Controller('class')
@@ -275,6 +277,33 @@ export class ClassController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/files')
+  @Roles(Role.ProfessorAdvisor, Role.Student)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'Class not found.' })
+  async updateProjectAddFiles(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+    @Body() { files }: UpdateProjectAddFilesDto,
+  ): Promise<ClassResponseWithSemesterDto> {
+    const classroom = await this.classService.class({ id });
+
+    if (!classroom) throw new NotFoundException('Class not found.');
+
+    return ({
+      ...await this.classService.updateClassFiles({
+        files,
+        where: {
+          id,
+          professorTccId: req.user.professor?.professorTcc?.id,
+        },
+      }),
+      professors: classroom.professors.map(professor => ({ ...professor.professorTcc.professor })),
+      students: classroom.students.map(student => student.student),
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin, Role.Secretary)
   @Delete(':id')
   @ApiBearerAuth()
@@ -323,5 +352,23 @@ export class ClassController {
     }
 
     return soc;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('file/:id')
+  @Roles(Role.ProfessorAdvisor, Role.Student)
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: 'File not found.' })
+  async removeProjectFile(
+    @Request() req: RequestWithUser,
+    @Param() { id }: FindByIdParam,
+  ): Promise<FileResponseDto> {
+    const file = await this.classService.classFile({ id });
+
+    if (!file || !file.class.professors.find(p => p.professorTccId === req.user.professor?.professorTcc.id)) {
+      throw new NotFoundException('File not found.');
+    }
+
+    return this.classService.deleteClassFile({ id });
   }
 }

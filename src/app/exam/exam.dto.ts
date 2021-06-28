@@ -83,8 +83,9 @@ export class UpdatePostDto {
   content?: string;
 
   @IsOptional()
-  @IsNotEmpty()
-  @IsString({ each: true })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
   files?: FileDto[];
 }
 

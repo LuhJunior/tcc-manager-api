@@ -6,6 +6,11 @@ import { ProfessorResponseDto } from '../professor/professor.dto';
 import { StudentResponseDto } from '../student/student.dto';
 
 export class FileDto {
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  id?: string;
+
   /**
    * Title of the file
    * @example 'A file'
