@@ -100,6 +100,11 @@ export class ExamService {
             deletedAt: null,
           },
         },
+        professorTccOnClass: {
+          include: {
+            class: true,
+          },
+        },
       },
     });
   }

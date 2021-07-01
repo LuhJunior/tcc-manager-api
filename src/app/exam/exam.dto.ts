@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { ClassResponseDto } from '../class/class.dto';
 import { FileDto, FileResponseDto } from '../project/project.dto';
 import { StudentResponseDto } from '../student/student.dto';
 
@@ -51,6 +52,17 @@ export class FindAllExamsQuery {
   @IsString()
   @IsUUID()
   classId: string | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsBoolean()
+  student: boolean | undefined;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  professor: boolean | undefined;
 }
 
 
@@ -103,6 +115,9 @@ export class ExamResponseDto {
 }
 
 export class ExamWithPostResponseDto extends ExamResponseDto {
+  professorTccOnClass?: {
+    class?: ClassResponseDto;
+  };
   posts: PostWithStudentResponseDto[];
 }
 
