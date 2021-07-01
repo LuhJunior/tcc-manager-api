@@ -131,11 +131,10 @@ export class ExamController {
     return exam;
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin, Role.ProfessorTcc, Role.Student)
+  @UseGuards(JwtAuthGuard)
   @Get()
-  async findAllProfessorExams(
-    @Query() { skip, take, classId }: FindAllParams & FindAllExamsQuery,
+  async findAllExams(
+    @Query() { skip, take, classId, student, professor }: FindAllParams & FindAllExamsQuery,
     @Request() req: RequestWithUser,
   ): Promise<ExamWithPostResponseDto[]> {
     const studentId = req.user.student?.id;
@@ -150,14 +149,14 @@ export class ExamController {
       where: {
         professorTccOnClass: {
           classId,
-          class: studentId && {
+          class: student && studentId ? {
             students: {
               some: {
-                studentId: studentId,
+                studentId,
               },
             },
-          },
-          professorTccId,
+          } : undefined,
+          professorTccId: professor ? professorTccId : undefined,
         },
       },
     });

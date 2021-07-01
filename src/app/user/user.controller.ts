@@ -101,6 +101,7 @@ export class UserController {
   @Patch(':id')
   @ApiNotFoundResponse({ description: 'User not found.' })
   @ApiConflictResponse({ description: 'Professor enrollmentCode already registred' })
+  @ApiConflictResponse({ description: 'Student enrollmentCode already registred' })
   async updateUser(
     @Param() { id }: FindByIdParam,
     @Query() { type } : UpdateUserQuery,
@@ -112,34 +113,16 @@ export class UserController {
       throw new NotFoundException('User not found.');
     }
 
-    if (
-      ['PROFESSOR', 'COORDINATOR', 'STUDENT'].includes(user.type)
-      && !user.professor
-      && await this.professorService.professor({ enrollmentCode })
-    ) {
-      throw new ConflictException('Professor enrollmentCode already registred');
-    }
-
     return this.userService.updateUser({ id }, {
       password,
       professor: ['PROFESSOR', 'COORDINATOR'].includes(type) ? {
-        upsert: {
-          create: {
-            name, enrollmentCode, email, phoneNumber,
-          },
-          update: {
-            name, email, phoneNumber,
-          },
-        }
+        update: {
+          name, email, phoneNumber,
+        },
       } : undefined,
       student: type === 'STUDENT' ? {
-        upsert: {
-          create: {
-            name, enrollmentCode, email, phoneNumber,
-          },
-          update: {
-            name, email, phoneNumber,
-          },
+        update: {
+          name, email, phoneNumber,
         },
       } : undefined,
     });
